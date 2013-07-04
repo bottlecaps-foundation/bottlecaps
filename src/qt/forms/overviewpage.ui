@@ -189,7 +189,7 @@
              <string>Mined balance that has not yet matured</string>
             </property>
             <property name="text">
-             <string notr="true">0 CAP/string>
+             <string notr="true">0 CAP</string>
             </property>
             <property name="textInteractionFlags">
              <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
