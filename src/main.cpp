@@ -2790,7 +2790,7 @@ string GetWarnings(string strFor)
     if (Checkpoints::IsSyncCheckpointTooOld(60 * 60 * 24 * 10) !fTestNet && !IsInitialBlockDownload())
     {
     	nPriority = 100;
-    	strStatusBar = "WARNING: Checkpoint is too old. Redownload Blockchain. If warning perpist contact the Development Team";
+    	strStatusBar = "WARNING: Checkpoint is too old. Redownload Blockchain. If warning persist contact the Development Team";
     }
 
     // ppcoin: if detected invalid checkpoint enter safe mode
