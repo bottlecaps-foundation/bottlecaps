@@ -191,6 +191,35 @@ Value stop(const Array& params, bool fHelp)
     return "BottleCaps server stopping";
 }
 
+// Bottlecaps: get network Mh/s estimate
+Value getnetworkMhps(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() != 0)
+        throw runtime_error(
+            "getnetworkMhps\n"
+            "Returns a recent Mhash/second network mining estimate.");
+
+    int64 nTargetSpacingWorkMin = 30;
+    int64 nTargetSpacingWork = nTargetSpacingWorkMin;
+    int64 nInterval = 72;
+    CBlockIndex* pindex = pindexGenesisBlock;
+    CBlockIndex* pindexPrevWork = pindexGenesisBlock;
+    while (pindex)
+    {
+        // Exponential moving average of recent proof-of-work block spacing
+        if (pindex->IsProofOfWork())
+        {
+            int64 nActualSpacingWork = pindex->GetBlockTime() - pindexPrevWork->GetBlockTime();
+            nTargetSpacingWork = ((nInterval - 1) * nTargetSpacingWork + nActualSpacingWork + nActualSpacingWork) / (nInterval + 1);
+            nTargetSpacingWork = max(nTargetSpacingWork, nTargetSpacingWorkMin);
+            pindexPrevWork = pindex;
+        }
+        pindex = pindex->pnext;
+    }
+    double dNetworkMhps = GetDifficulty() * 4.294967296 / nTargetSpacingWork / 1000; 
+    return dNetworkMhps;
+}
+
 
 
 //
@@ -203,6 +232,7 @@ static const CRPCCommand vRPCCommands[] =
   //  ------------------------  -----------------------  ------  --------
     { "help",                   &help,                   true,   true },
     { "stop",                   &stop,                   true,   true },
+    { "getnetworkMhpersec"      &getnetworkMhpersec      true,   true },
     { "getblockcount",          &getblockcount,          true,   false },
     { "getconnectioncount",     &getconnectioncount,     true,   false },
     { "getpeerinfo",            &getpeerinfo,            true,   false },
