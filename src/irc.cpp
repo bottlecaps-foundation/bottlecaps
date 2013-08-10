@@ -7,6 +7,7 @@
 #include "net.h"
 #include "strlcpy.h"
 #include "base58.h"
+#include "main.h"
 
 using namespace std;
 using namespace boost;
