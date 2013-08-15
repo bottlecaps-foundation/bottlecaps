@@ -1026,7 +1026,7 @@ unsigned int ComputeMinWork(unsigned int nBase, int64 nTime)
     {
         // Maximum 200% adjustment per day...
         bnResult *= 2;
-        nTime -= 24 * 60 * 60;
+        nTime -= 0.16 * 24 * 60 * 60;
     }
     if (bnResult > bnTargetLimit)
         bnResult = bnTargetLimit;
@@ -2787,11 +2787,12 @@ string GetWarnings(string strFor)
 
     // ppcoin: should not enter safe mode for longer invalid chain
     // ppcoin: if sync-checkpoint is too old do not enter safe mode
-    if (Checkpoints::IsSyncCheckpointTooOld(60 * 60 * 24 * 10) && !fTestNet && !IsInitialBlockDownload())
-    {
-    	nPriority = 100;
-    	strStatusBar = "WARNING: Checkpoint is too old. Redownload Blockchain. If warning persist contact the Development Team";
-    }
+//    if (Checkpoints::IsSyncCheckpointTooOld(60 * 60 * 24 * 10) && !fTestNet && !IsInitialBlockDownload())
+//   {
+//    	nPriority = 100;
+//    	strStatusBar = "WARNING: Checkpoint is too old. Redownload Blockchain. If warning persist contact the Development Team";
+// Temporarily Disabled
+//   }
 
     // ppcoin: if detected invalid checkpoint enter safe mode
     if (Checkpoints::hashInvalidCheckpoint != 0)
@@ -2898,11 +2899,29 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
         CAddress addrMe;
         CAddress addrFrom;
         uint64 nNonce = 1;
+		bool badVersion = false;
         vRecv >> pfrom->nVersion >> pfrom->nServices >> nTime >> addrMe;
         if (pfrom->nVersion < MIN_PROTO_VERSION)
         {
             // Since February 20, 2012, the protocol is initiated at version 209,
             // and earlier versions are no longer supported
+            printf("partner %s using obsolete version %i; disconnecting\n", pfrom->addr.ToString().c_str(), pfrom->nVersion);
+            pfrom->fDisconnect = true;
+            return false;
+        }
+		
+		if(nTime < 1376758800)
+        {
+            if(pfrom->nVersion < 60008)
+                badVersion = true;
+        }
+        else
+        {
+            if(pfrom->nVersion < 70000)
+                badVersion = true;
+        }
+        if(badVersion)
+        {
             printf("partner %s using obsolete version %i; disconnecting\n", pfrom->addr.ToString().c_str(), pfrom->nVersion);
             pfrom->fDisconnect = true;
             return false;
