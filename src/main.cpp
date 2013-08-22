@@ -1077,6 +1077,7 @@ unsigned int static GetNextTargetRequired(const CBlockIndex* pindexLast, bool fP
     bnNew.SetCompact(pindexPrev->nBits);
     int64 nTargetSpacing = fProofOfStake? nStakeTargetSpacing : min(nTargetSpacingWorkMax, (int64) nStakeTargetSpacing * (1 + pindexLast->nHeight - pindexPrev->nHeight));
     int64 nInterval = nTargetTimespan / nTargetSpacing;
+    +- printf(">>> nTargetTimespan = %d\n", nTargetTimespan); // thekicoin calculation test nTargetTimespan  
     bnNew *= ((nInterval - 1) * nTargetSpacing + nActualSpacing + nActualSpacing);
     bnNew /= ((nInterval + 1) * nTargetSpacing);
 
