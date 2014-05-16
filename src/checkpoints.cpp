@@ -27,6 +27,7 @@ namespace Checkpoints
         ( 0, hashGenesisBlockOfficial )
         ( 48000, uint256("0x00000000118a5a2e08bdd44410dcd4ff9a89d70d8a080e5e502cc72840af5021"))
         ( 136822, uint256("0x0000000013cee700df4937ad60f2de34ac48f95e36471f259f5b1e8a3421764b"))
+        ( 339056, uint256("0x0000000179b03ebb5b11e0c56cd75a9e11467a4a6c591888955de25828171685"))
 
 
 ;
