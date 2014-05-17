@@ -142,6 +142,7 @@ void OptionsDialog::setMapper()
 #ifndef Q_OS_MAC
     mapper->addMapping(ui->minimizeToTray, OptionsModel::MinimizeToTray);
     mapper->addMapping(ui->minimizeOnClose, OptionsModel::MinimizeOnClose);
+    mapper->addMapping(ui->coinControlFeatures, OptionsModel::CoinControlFeatures);
 #endif
 
     /* Display */
