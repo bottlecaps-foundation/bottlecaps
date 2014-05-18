@@ -25,6 +25,7 @@
 #include "notificator.h"
 #include "guiutil.h"
 #include "rpcconsole.h"
+#include "ui_interface.h"
 
 #ifdef Q_OS_MAC
 #include "macdockiconhandler.h"
@@ -363,7 +364,7 @@ void BitcoinGUI::setClientModel(ClientModel *clientModel)
         connect(clientModel, SIGNAL(numBlocksChanged(int,int)), this, SLOT(setNumBlocks(int,int)));
 
         // Report errors from network/worker thread
-        connect(clientModel, SIGNAL(error(QString,QString,bool)), this, SLOT(error(QString,QString,bool)));
+        connect(clientModel, SIGNAL(message(QString,QString,unsigned int)), this, SLOT(message(QString,QString,unsigned int)));
 
         rpcConsole->setClientModel(clientModel);
         addressBookPage->setOptionsModel(clientModel->getOptionsModel());
@@ -377,7 +378,7 @@ void BitcoinGUI::setWalletModel(WalletModel *walletModel)
     if(walletModel)
     {
         // Report errors from wallet thread
-        connect(walletModel, SIGNAL(error(QString,QString,bool)), this, SLOT(error(QString,QString,bool)));
+        connect(walletModel, SIGNAL(message(QString,QString,unsigned int)), this, SLOT(message(QString,QString,unsigned int)));
 
         // Put transaction list in tabs
         transactionView->setModel(walletModel);
@@ -584,15 +585,50 @@ void BitcoinGUI::setNumBlocks(int count, int nTotalBlocks)
     progressBar->setToolTip(tooltip);
 }
 
-void BitcoinGUI::error(const QString &title, const QString &message, bool modal)
+void BitcoinGUI::message(const QString &title, const QString &message, unsigned int style)
 {
-    // Report errors from network/worker thread
-    if(modal)
-    {
-        QMessageBox::critical(this, title, message, QMessageBox::Ok, QMessageBox::Ok);
-    } else {
-        notificator->notify(Notificator::Critical, title, message);
-    }
+  QString strTitle = tr("BottleCaps") + " - ";
+  // Default to information icon
+  int nMBoxIcon = QMessageBox::Information;
+  int nNotifyIcon = Notificator::Information;
+
+  // Check for usage of predefined title
+  switch (style) {
+  case CClientUIInterface::MSG_ERROR:
+      strTitle += tr("Error");
+      break;
+  case CClientUIInterface::MSG_WARNING:
+      strTitle += tr("Warning");
+      break;
+  case CClientUIInterface::MSG_INFORMATION:
+      strTitle += tr("Information");
+      break;
+  default:
+      strTitle += title; // Use supplied title
+  }
+
+  // Check for error/warning icon
+  if (style & CClientUIInterface::ICON_ERROR) {
+      nMBoxIcon = QMessageBox::Critical;
+      nNotifyIcon = Notificator::Critical;
+  }
+  else if (style & CClientUIInterface::ICON_WARNING) {
+      nMBoxIcon = QMessageBox::Warning;
+      nNotifyIcon = Notificator::Warning;
+  }
+
+  // Display message
+  if (style & CClientUIInterface::MODAL) {
+      // Check for buttons, use OK as default, if none was supplied
+      QMessageBox::StandardButton buttons;
+      if (!(buttons = (QMessageBox::StandardButton)(style & CClientUIInterface::BTN_MASK)))
+          buttons = QMessageBox::Ok;
+
+      QMessageBox mBox((QMessageBox::Icon)nMBoxIcon, strTitle, message, buttons);
+      mBox.exec();
+  }
+  else
+      notificator->notify((Notificator::Class)nNotifyIcon, strTitle, message);
 }
 
 void BitcoinGUI::changeEvent(QEvent *e)
