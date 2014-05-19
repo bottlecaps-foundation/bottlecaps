@@ -142,13 +142,13 @@ void OptionsDialog::setMapper()
 #ifndef Q_OS_MAC
     mapper->addMapping(ui->minimizeToTray, OptionsModel::MinimizeToTray);
     mapper->addMapping(ui->minimizeOnClose, OptionsModel::MinimizeOnClose);
-    mapper->addMapping(ui->coinControlFeatures, OptionsModel::CoinControlFeatures);
 #endif
 
     /* Display */
     mapper->addMapping(ui->lang, OptionsModel::Language);
     mapper->addMapping(ui->unit, OptionsModel::DisplayUnit);
     mapper->addMapping(ui->displayAddresses, OptionsModel::DisplayAddresses);
+    mapper->addMapping(ui->coinControlFeatures, OptionsModel::CoinControlFeatures);
 }
 
 void OptionsDialog::enableApplyButton()
