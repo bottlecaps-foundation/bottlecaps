@@ -1510,8 +1510,8 @@ bool CBlock::DisconnectBlock(CTxDB& txdb, CBlockIndex* pindex)
 
 bool CBlock::ConnectBlock(CTxDB& txdb, CBlockIndex* pindex, bool fJustCheck)
 {
-    // Check it again in case a previous version let a bad block in
-    if (!CheckBlock(!fJustCheck, !fJustCheck))
+    // Check it again in case a previous version let a bad block in, but skip BlockSig checking
+    if (!CheckBlock(!fJustCheck, !fJustCheck, false))
         return false;
 
     // Do not allow blocks that contain transactions which 'overwrite' older transactions,
@@ -2019,7 +2019,7 @@ bool CBlock::AddToBlockIndex(unsigned int nFile, unsigned int nBlockPos)
 
 
 
-bool CBlock::CheckBlock(bool fCheckPOW, bool fCheckMerkleRoot) const
+bool CBlock::CheckBlock(bool fCheckPOW, bool fCheckMerkleRoot, bool fCheckSig) const
 {
     // These are checks that are independent of context
     // that can be verified before saving an orphan block.
@@ -2063,6 +2063,10 @@ bool CBlock::CheckBlock(bool fCheckPOW, bool fCheckMerkleRoot) const
         // Check coinstake timestamp
         if (!CheckCoinStakeTimestamp(GetBlockTime(), (int64)vtx[1].nTime))
             return DoS(50, error("CheckBlock() : coinstake timestamp violation nTimeBlock=%"PRI64d" nTimeTx=%u", GetBlockTime(), vtx[1].nTime));
+
+        // Check proof-of-stake block signature
+        if (fCheckSig && !CheckBlockSignature(true))
+            return DoS(100, error("CheckBlock() : bad proof-of-stake block signature"));
       }
       else
       {
@@ -2117,10 +2121,6 @@ bool CBlock::CheckBlock(bool fCheckPOW, bool fCheckMerkleRoot) const
     // Check merkle root
     if (fCheckMerkleRoot && hashMerkleRoot != BuildMerkleTree())
         return DoS(100, error("CheckBlock() : hashMerkleRoot mismatch"));
-
-    // ppcoin: check block signature
-    if (!CheckBlockSignature())
-        return DoS(100, error("CheckBlock() : bad block signature"));
 
     return true;
 }
@@ -2411,8 +2411,8 @@ bool CBlock::SignBlock(const CKeyStore& keystore)
     return false;
 }
 
-// ppcoin: check block signature
-bool CBlock::CheckBlockSignature() const
+// check block signature
+bool CBlock::CheckBlockSignature(bool fProofOfStake) const
 {
     if (GetHash() == (!fTestNet ? hashGenesisBlock : hashGenesisBlockTestNet))
         return vchBlockSig.empty();
@@ -2420,7 +2420,7 @@ bool CBlock::CheckBlockSignature() const
     vector<valtype> vSolutions;
     txnouttype whichType;
 
-    if(IsProofOfStake())
+    if(fProofOfStake)
     {
         const CTxOut& txout = vtx[1].vout[1];
 
