@@ -42,6 +42,55 @@ double GetDifficulty(const CBlockIndex* blockindex)
     return dDiff;
 }
 
+double GetPoWMHashPS()
+{
+    int nPoWInterval = 72;
+    int64 nTargetSpacingWorkMin = 30, nTargetSpacingWork = 30;
+
+    CBlockIndex* pindex = pindexGenesisBlock;
+    CBlockIndex* pindexPrevWork = pindexGenesisBlock;
+
+    while (pindex)
+    {
+        if (pindex->IsProofOfWork())
+        {
+            int64 nActualSpacingWork = pindex->GetBlockTime() - pindexPrevWork->GetBlockTime();
+            nTargetSpacingWork = ((nPoWInterval - 1) * nTargetSpacingWork + nActualSpacingWork + nActualSpacingWork) / (nPoWInterval + 1);
+            nTargetSpacingWork = max(nTargetSpacingWork, nTargetSpacingWorkMin);
+            pindexPrevWork = pindex;
+        }
+
+        pindex = pindex->pnext;
+    }
+
+    return GetDifficulty() * 4294.967296 / nTargetSpacingWork;
+}
+
+double GetPoSKernelPS()
+{
+    int nPoSInterval = 72;
+    double dStakeKernelsTriedAvg = 0;
+    int nStakesHandled = 0, nStakesTime = 0;
+
+    CBlockIndex* pindex = pindexBest;;
+    CBlockIndex* pindexPrevStake = NULL;
+
+    while (pindex && nStakesHandled < nPoSInterval)
+    {
+        if (pindex->IsProofOfStake())
+        {
+            dStakeKernelsTriedAvg += GetDifficulty(pindex) * 4294967296.0;
+            nStakesTime += pindexPrevStake ? (pindexPrevStake->nTime - pindex->nTime) : 0;
+            pindexPrevStake = pindex;
+            nStakesHandled++;
+        }
+
+        pindex = pindex->pprev;
+    }
+
+    return dStakeKernelsTriedAvg / nStakesTime;
+}
+
 
 Object blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool fPrintTransactionDetail)
 {
