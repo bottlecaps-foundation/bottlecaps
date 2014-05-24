@@ -219,7 +219,9 @@ boost::filesystem::path GetDefaultDataDir();
 const boost::filesystem::path &GetDataDir(bool fNetSpecific = true);
 boost::filesystem::path GetConfigFile();
 boost::filesystem::path GetPidFile();
+#ifndef WIN32
 void CreatePidFile(const boost::filesystem::path &path, pid_t pid);
+#endif
 void ReadConfigFile(std::map<std::string, std::string>& mapSettingsRet, std::map<std::string, std::vector<std::string> >& mapMultiSettingsRet);
 #ifdef WIN32
 boost::filesystem::path GetSpecialFolderPath(int nFolder, bool fCreate = true);
@@ -290,6 +292,16 @@ inline int64 roundint64(double d)
 inline int64 abs64(int64 n)
 {
     return (n >= 0 ? n : -n);
+}
+
+inline std::string leftTrim(std::string src, char chr)
+{
+    std::string::size_type pos = src.find_first_not_of(chr, 0);
+
+    if(pos > 0)
+        src.erase(0, pos);
+
+    return src;
 }
 
 template<typename T>
