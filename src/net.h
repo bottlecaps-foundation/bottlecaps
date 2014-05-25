@@ -146,6 +146,9 @@ public:
     int64 nReleaseTime;
     int nStartingHeight;
     int nMisbehavior;
+    uint64 nSendBytes;
+    uint64 nRecvBytes;
+    uint64 nBlocksRequested;
 };
 
 
@@ -167,6 +170,9 @@ public:
     int64 nLastRecv;
     int64 nLastSendEmpty;
     int64 nTimeConnected;
+    uint64 nBlocksRequested;
+    uint64 nRecvBytes;
+    uint64 nSendBytes;
     int nHeaderStart;
     unsigned int nMessageStart;
     CAddress addr;
@@ -220,6 +226,9 @@ public:
         nLastRecv = 0;
         nLastSendEmpty = GetTime();
         nTimeConnected = GetTime();
+        nSendBytes = 0;
+        nRecvBytes = 0;
+        nBlocksRequested = 0;
         nHeaderStart = -1;
         nMessageStart = -1;
         addr = addrIn;
