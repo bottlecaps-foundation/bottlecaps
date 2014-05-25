@@ -18,7 +18,6 @@
 #include "util.h"
 #include "walletdb.h"
 
-extern bool fWalletUnlockMintOnly;
 class CAccountingEntry;
 class CWalletTx;
 class CReserveKey;
@@ -86,6 +85,7 @@ public:
 
     bool fFileBacked;
     std::string strWalletFile;
+    bool fWalletUnlockMintOnly;
 
     std::set<int64> setKeyPool;
     std::map<CKeyID, CKeyMetadata> mapKeyMetadata;
@@ -103,6 +103,7 @@ public:
         nMasterKeyMaxID = 0;
         pwalletdbEncryption = NULL;
         nOrderPosNext = 0;
+        fWalletUnlockMintOnly = false;
     }
     CWallet(std::string strWalletFileIn)
     {
@@ -113,6 +114,7 @@ public:
         nMasterKeyMaxID = 0;
         pwalletdbEncryption = NULL;
         nOrderPosNext = 0;
+        fWalletUnlockMintOnly = false;
     }
 
     std::map<uint256, CWalletTx> mapWallet;
