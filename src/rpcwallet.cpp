@@ -73,6 +73,7 @@ Value getinfo(const Array& params, bool fHelp)
     obj.push_back(Pair("version",       FormatFullVersion()));
     obj.push_back(Pair("protocolversion",(int)PROTOCOL_VERSION));
     obj.push_back(Pair("walletversion", pwalletMain->GetVersion()));
+    obj.push_back(Pair("encrypted",     pwalletMain->IsCrypted()));
     obj.push_back(Pair("balance",       ValueFromAmount(pwalletMain->GetBalance())));
     obj.push_back(Pair("newmint",       ValueFromAmount(pwalletMain->GetNewMint())));
     obj.push_back(Pair("stake",         ValueFromAmount(pwalletMain->GetStake())));
@@ -87,8 +88,15 @@ Value getinfo(const Array& params, bool fHelp)
     obj.push_back(Pair("keypoolsize",   (int)pwalletMain->GetKeyPoolSize()));
     obj.push_back(Pair("paytxfee",      ValueFromAmount(nTransactionFee)));
     obj.push_back(Pair("mininput",      ValueFromAmount(nMinimumInputValue)));
-    if (pwalletMain->IsCrypted())
+    if (pwalletMain->IsCrypted() && !pwalletMain->IsLocked() )
+    {
         obj.push_back(Pair("unlocked_until", (boost::int64_t)nWalletUnlockTime / 1000));
+        obj.push_back(Pair("unlocked_until_pretty", DateTimeStrFormat(nWalletUnlockTime / 1000)));
+    }
+    else if(pwalletMain->IsCrypted() && pwalletMain->IsLocked() )
+    {
+        obj.push_back(Pair("unlocked_until", "Locked"));
+    }
     obj.push_back(Pair("errors",        GetWarnings("statusbar")));
     return obj;
 }
@@ -1455,14 +1463,19 @@ Value walletpassphrase(const Array& params, bool fHelp)
             "Stores the wallet decryption key in memory for <timeout> seconds.");
 
     NewThread(ThreadTopUpKeyPool, NULL);
-    int64* pnSleepTime = new int64(params[1].get_int64());
-    NewThread(ThreadCleanWalletPassphrase, pnSleepTime);
 
     // ppcoin: if user OS account compromised prevent trivial sendmoney commands
     if (params.size() > 2)
         pwalletMain->fWalletUnlockMintOnly = params[2].get_bool();
     else
         pwalletMain->fWalletUnlockMintOnly = false;
+
+    //Zero unlock time means forever, well 68 years, forever for crypto.
+    int64* nUnlockTime = (params[1].get_int64() == 0)
+        ? new int64(std::numeric_limits<int>::max())
+        : new int64(params[1].get_int64());
+
+    NewThread(ThreadCleanWalletPassphrase, nUnlockTime);
 
     return Value::null;
 }
