@@ -68,6 +68,7 @@ private:
     SignVerifyMessageDialog *signVerifyMessageDialog;
 
     QLabel *labelEncryptionIcon;
+    QLabel *labelStakingIcon;
     QLabel *labelConnectionsIcon;
     QLabel *labelBlocksIcon;
     QLabel *progressBarLabel;
@@ -174,6 +175,8 @@ private slots:
     void lockIconClicked();
     /** Show information about peers */
     void connectionIconClicked();
+    /** Show information about PoS */
+    void stakingIconClicked();
 #ifndef Q_OS_MAC
     /** Handle tray icon clicked */
     void trayIconActivated(QSystemTrayIcon::ActivationReason reason);
@@ -203,6 +206,8 @@ private slots:
     void unlockWalletForMint();
     /** Allow user to lock wallet */
     void lockWallet();
+    /** Give user information about staking */
+    void updateStakingIcon();
 
     /** Show window if hidden, unminimize when minimized, rise when obscured or show if hidden and fToggleHidden is true */
     void showNormalIfMinimized(bool fToggleHidden = false);
