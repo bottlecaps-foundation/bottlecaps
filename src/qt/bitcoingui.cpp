@@ -355,8 +355,6 @@ void BitcoinGUI::createMenuBar()
     file->addAction(importWalletAction);
     file->addSeparator();
     file->addAction(exportAction);
-    file->addAction(signMessageAction);
-    file->addAction(verifyMessageAction);
     file->addSeparator();
     file->addAction(quitAction);
 
@@ -371,6 +369,9 @@ void BitcoinGUI::createMenuBar()
     wallet->addSeparator();
     wallet->addAction(checkWalletAction);
     wallet->addAction(repairWalletAction);
+    wallet->addSeparator();
+    wallet->addAction(signMessageAction);
+    wallet->addAction(verifyMessageAction);
 
 
     QMenu *help = appMenuBar->addMenu(tr("&Help"));
