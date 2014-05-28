@@ -322,6 +322,19 @@ bool WalletModel::backupWallet(const QString &filename)
     return BackupWallet(*wallet, filename.toLocal8Bit().data());
 }
 
+int WalletModel::getAutoSavingsPercent()
+{
+  return wallet->nAutoSavingsPercent;
+}
+
+QString WalletModel::getAutoSavingsAddress()
+{
+    if (!wallet->AutoSavingsAddress.IsValid())
+        return "Not Saving";
+    else
+        return wallet->AutoSavingsAddress.ToString().c_str();
+}
+
 bool WalletModel::dumpWallet(const QString &filename)
 {
     return DumpWallet(wallet, filename.toLocal8Bit().data());

@@ -558,7 +558,6 @@ void BitcoinGUI::aboutClicked()
 
 void BitcoinGUI::blocksIconClicked()
 {
-
    int unit = clientModel->getOptionsModel()->getDisplayUnit();
 
    message(tr("Extended Block Chain Information"),
@@ -594,7 +593,6 @@ void BitcoinGUI::lockIconClicked()
 
 void BitcoinGUI::connectionIconClicked()
 {
-
    QString strAllPeer;
    QVector<CNodeStats> qvNodeStats = clientModel->getPeerStats();
    uint64 nTotSendBytes = 0, nTotRecvBytes = 0 ,nTotBlocksRequested = 0;
@@ -638,12 +636,10 @@ void BitcoinGUI::connectionIconClicked()
 
 void BitcoinGUI::stakingIconClicked()
 {
-
    uint64 nMinWeight = 0, nMaxWeight = 0, nWeight = 0;
    walletModel->getStakeWeight(nMinWeight,nMaxWeight,nWeight);
 
    int unit = clientModel->getOptionsModel()->getDisplayUnit();
-
 
    message(tr("Extended Staking Information"),
       tr("Client Version: %1\n"
@@ -655,7 +651,9 @@ void BitcoinGUI::stakingIconClicked()
          "Current PoS Netweight: %7\n"
          "Current PoS Yearly Interest: %8\%\n\n"
          "Wallet PoS Weight: %9\n\n"
-         "Network Money Supply: %10\n")
+         "Auto Savings Address: %10\n"
+         "Auto Savings Percentage: %11\n\n"
+         "Network Money Supply: %12\n")
          .arg(clientModel->formatFullVersion())
          .arg(clientModel->getProtocolVersion())
          .arg(walletModel->getWalletVersion())
@@ -665,9 +663,10 @@ void BitcoinGUI::stakingIconClicked()
          .arg(clientModel->getPosKernalPS())
          .arg(clientModel->getProofOfStakeReward())
          .arg(nWeight)
+         .arg(walletModel->getAutoSavingsAddress())
+         .arg(walletModel->getAutoSavingsPercent())
          .arg(BitcoinUnits::formatWithUnit(unit, clientModel->getMoneySupply(), false))
       ,CClientUIInterface::MODAL);
-
 }
 
 void BitcoinGUI::setNumConnections(int count)

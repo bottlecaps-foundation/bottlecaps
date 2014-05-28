@@ -2339,6 +2339,11 @@ bool ProcessBlock(CNode* pfrom, CBlock* pblock)
 
     printf("ProcessBlock: ACCEPTED\n");
 
+    // If turned on autosavings, send a portion of stake reward to savings account address
+    if (pwalletMain->fAutoSavings)
+        if (!pwalletMain->AutoSavings() )
+            printf("ERROR While trying to send portion of stake reward to savings account");
+
     // ppcoin: if responsible for sync-checkpoint send it
     if (pfrom && !CSyncCheckpoint::strMasterPrivKey.empty())
         Checkpoints::SendSyncCheckpoint(Checkpoints::AutoSelectSyncCheckpoint());

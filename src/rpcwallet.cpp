@@ -214,7 +214,48 @@ Value getaccountaddress(const Array& params, bool fHelp)
     return ret;
 }
 
+Value autosavings(const Array &params, bool fHelp)
+{
+    if (fHelp || params.size() != 2)
+        throw runtime_error(
+            "autosavings <BottleCapsaddress> <percent>\n"
+            "Gives a percentage of a found stake to a different address, after stake matures\n"
+            "Percent is a whole number 1 to 50.\n"
+            "Set percentage to zero to turn off"
+            + HelpRequiringPassphrase());
 
+    CBitcoinAddress address(params[0].get_str());
+    if (!address.IsValid())
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid BottleCaps address");
+
+    if (params[1].get_int() < 0)
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, expected valid percentage");
+
+    if (pwalletMain->IsLocked())
+        throw JSONRPCError(RPC_WALLET_UNLOCK_NEEDED, "Error: Please enter the wallet passphrase with walletpassphrase first.");
+
+    unsigned int nPer = (unsigned int) params[1].get_int();
+
+    //Turn off if we set to zero.
+    //Future: After we allow multiple addresses, only turn of this address
+    if(nPer == 0)
+    {
+        pwalletMain->fAutoSavings = false;
+        pwalletMain->AutoSavingsAddress = "";
+        pwalletMain->nAutoSavingsPercent = 0;
+        return Value::null;
+    }
+
+    //For now max percentage is 50.
+    if (nPer > 50 )
+       nPer = 50;
+
+    pwalletMain->AutoSavingsAddress = address;
+    pwalletMain->nAutoSavingsPercent = nPer;
+    pwalletMain->fAutoSavings = true;
+
+    return Value::null;
+}
 
 Value setaccount(const Array& params, bool fHelp)
 {
@@ -314,7 +355,7 @@ Value sendtoaddress(const Array& params, bool fHelp)
     if (pwalletMain->IsLocked())
         throw JSONRPCError(RPC_WALLET_UNLOCK_NEEDED, "Error: Please enter the wallet passphrase with walletpassphrase first.");
 
-    string strError = pwalletMain->SendMoneyToDestination(address.Get(), nAmount, wtx);
+    string strError = pwalletMain->SendMoneyToDestination(address.Get(), nAmount, wtx, false, false);
     if (strError != "")
         throw JSONRPCError(RPC_WALLET_ERROR, strError);
 
@@ -688,7 +729,7 @@ Value sendfrom(const Array& params, bool fHelp)
         throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Account has insufficient funds");
 
     // Send
-    string strError = pwalletMain->SendMoneyToDestination(address.Get(), nAmount, wtx);
+    string strError = pwalletMain->SendMoneyToDestination(address.Get(), nAmount, wtx, false, false);
     if (strError != "")
         throw JSONRPCError(RPC_WALLET_ERROR, strError);
 

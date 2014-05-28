@@ -87,6 +87,9 @@ public:
     bool fFileBacked;
     std::string strWalletFile;
     bool fWalletUnlockMintOnly;
+    bool fAutoSavings;
+    int nAutoSavingsPercent;
+    CBitcoinAddress AutoSavingsAddress;
 
     std::set<int64> setKeyPool;
     std::map<CKeyID, CKeyMetadata> mapKeyMetadata;
@@ -105,6 +108,10 @@ public:
         pwalletdbEncryption = NULL;
         nOrderPosNext = 0;
         fWalletUnlockMintOnly = false;
+        fAutoSavings = false;
+        nAutoSavingsPercent = 0;
+        AutoSavingsAddress = "";
+
     }
     CWallet(std::string strWalletFileIn)
     {
@@ -116,6 +123,9 @@ public:
         pwalletdbEncryption = NULL;
         nOrderPosNext = 0;
         fWalletUnlockMintOnly = false;
+        fAutoSavings = false;
+        nAutoSavingsPercent = 0;
+        AutoSavingsAddress = "";
     }
 
     std::map<uint256, CWalletTx> mapWallet;
@@ -186,14 +196,15 @@ public:
     int64 GetImmatureBalance() const;
     int64 GetStake() const;
     int64 GetNewMint() const;
+    bool AutoSavings();
     bool CreateTransaction(const std::vector<std::pair<CScript, int64> >& vecSend, CWalletTx& wtxNew, CReserveKey& reservekey, int64& nFeeRet, const CCoinControl *coinControl=NULL);
     bool CreateTransaction(CScript scriptPubKey, int64 nValue, CWalletTx& wtxNew, CReserveKey& reservekey, int64& nFeeRet, const CCoinControl *coinControl=NULL);
     bool CommitTransaction(CWalletTx& wtxNew, CReserveKey& reservekey);
     bool GetStakeWeightFromValue(const int64& nTime, const int64& nValue, uint64& nWeight);
     bool GetStakeWeight(const CKeyStore& keystore, uint64& nMinWeight, uint64& nMaxWeight, uint64& nWeight);
     bool CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int64 nSearchInterval, CTransaction& txNew, CKey& key);
-    std::string SendMoney(CScript scriptPubKey, int64 nValue, CWalletTx& wtxNew, bool fAskFee=false);
-    std::string SendMoneyToDestination(const CTxDestination &address, int64 nValue, CWalletTx& wtxNew, bool fAskFee=false);
+    std::string SendMoney(CScript scriptPubKey, int64 nValue, CWalletTx& wtxNew, bool fAskFee=false, bool fAllowAutoSavings=false);
+    std::string SendMoneyToDestination(const CTxDestination &address, int64 nValue, CWalletTx& wtxNew, bool fAskFee=false, bool fAllowAutoSavings=false);
 
     bool NewKeyPool();
     bool TopUpKeyPool(unsigned int nSize = 0);
