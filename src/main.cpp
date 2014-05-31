@@ -42,6 +42,11 @@ static CBigNum bnProofOfStakeLimitTestNet(~uint256(0) >> 20);
 
 unsigned int nStakeMinAge = 60 * 60 * 24 * 30; // minimum age for coin age
 unsigned int nStakeMaxAge = 60 * 60 * 24 * 90; // stake age of full weight
+
+//Version 2.0 will change weight 15/45 days
+unsigned int nStakeMinAgeV2 = 60 * 60 * 24 * 15; // minimum age for coin age
+unsigned int nStakeMaxAgeV2 = 60 * 60 * 24 * 45; // stake age of full weight
+
 unsigned int nStakeTargetSpacing = 1 * 60; // 1-minute block spacing
 int64 nChainStartTime = 1371910049;
 int nCoinbaseMaturity = 5;
@@ -1092,6 +1097,22 @@ int64 GetProofOfStakeRewardV2(int64 nCoinAge, unsigned int nBits, unsigned int n
     return nSubsidy;
 }
 
+unsigned int GetStakeMinAge()
+{
+  if (GetAdjustedTime() > VERSION2_SWITCH_TIME)
+      return nStakeMinAgeV2;
+  else
+      return nStakeMinAge;
+}
+
+unsigned int GetStakeMaxAge()
+{
+  if (GetAdjustedTime() > VERSION2_SWITCH_TIME)
+      return nStakeMaxAgeV2;
+  else
+      return nStakeMaxAge;
+}
+
 static const int64 nTargetTimespan = 0.16 * 24 * 60 * 60;  // 4-hour
 static const int64 nTargetSpacingWorkMax = 12 * nStakeTargetSpacing; // 2-hour
 
@@ -1974,7 +1995,7 @@ bool CTransaction::GetCoinAge(CTxDB& txdb, uint64& nCoinAge) const
         CBlock block;
         if (!block.ReadFromDisk(txindex.pos.nFile, txindex.pos.nBlockPos, false))
             return false; // unable to read block of previous transaction
-        if (block.GetBlockTime() + nStakeMinAge > nTime)
+        if (block.GetBlockTime() + GetStakeMinAge() > nTime)
             continue; // only count coins meeting min age requirement
 
         int64 nValueIn = txPrev.vout[txin.prevout.n].nValue;
@@ -3406,7 +3427,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
                 printf("  getblocks stopping at %d %s\n", pindex->nHeight, pindex->GetBlockHash().ToString().substr(0,20).c_str());
                 // ppcoin: tell downloading node about the latest block if it's
                 // without risk being rejected due to stake connection check
-                if (hashStop != hashBestChain && pindex->GetBlockTime() + nStakeMinAge > pindexBest->GetBlockTime())
+                if (hashStop != hashBestChain && pindex->GetBlockTime() + GetStakeMinAge() > pindexBest->GetBlockTime())
                     pfrom->PushInventory(CInv(MSG_BLOCK, hashBestChain));
                 break;
             }
