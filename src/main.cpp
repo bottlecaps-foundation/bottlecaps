@@ -50,8 +50,7 @@ unsigned int nStakeMaxAgeV2 = 60 * 60 * 24 * 45; // stake age of full weight
 unsigned int nStakeTargetSpacing = 1 * 60; // 1-minute block spacing
 int64 nChainStartTime = 1371910049;
 int nCoinbaseMaturity = 5;
-//Tranz This will need changed after fork to 15 days
-int nCoinbaseMaturityMultipiler = 8000;
+int nCoinbaseMaturityMultipiler = 4000;
 CBlockIndex* pindexGenesisBlock = NULL;
 int nBestHeight = -1;
 CBigNum bnBestChainTrust = 0;
@@ -1097,17 +1096,17 @@ int64 GetProofOfStakeRewardV2(int64 nCoinAge, unsigned int nBits, unsigned int n
     return nSubsidy;
 }
 
-unsigned int GetStakeMinAge()
+unsigned int GetStakeMinAge(unsigned int nTime)
 {
-  if (GetAdjustedTime() > VERSION2_SWITCH_TIME)
+  if (nTime > VERSION2_SWITCH_TIME)
       return nStakeMinAgeV2;
   else
       return nStakeMinAge;
 }
 
-unsigned int GetStakeMaxAge()
+unsigned int GetStakeMaxAge(unsigned int nTime)
 {
-  if (GetAdjustedTime() > VERSION2_SWITCH_TIME)
+  if (nTime > VERSION2_SWITCH_TIME)
       return nStakeMaxAgeV2;
   else
       return nStakeMaxAge;
@@ -1226,7 +1225,7 @@ unsigned int GetNextTargetRequiredV2(const CBlockIndex* pindexLast, bool fProofO
 
 unsigned int GetNextTargetRequired(const CBlockIndex* pindexLast, bool fProofOfStake)
 {
-  if (GetAdjustedTime() > VERSION2_SWITCH_TIME)
+  if (pindexLast->nTime > VERSION2_SWITCH_TIME)
       return GetNextTargetRequiredV2(pindexLast, fProofOfStake);
    else
       return GetNextTargetRequiredV1(pindexLast, fProofOfStake);
@@ -2035,7 +2034,7 @@ bool CTransaction::GetCoinAge(CTxDB& txdb, uint64& nCoinAge) const
         CBlock block;
         if (!block.ReadFromDisk(txindex.pos.nFile, txindex.pos.nBlockPos, false))
             return false; // unable to read block of previous transaction
-        if (block.GetBlockTime() + GetStakeMinAge() > nTime)
+        if (block.GetBlockTime() + GetStakeMinAge(nTime) > nTime)
             continue; // only count coins meeting min age requirement
 
         int64 nValueIn = txPrev.vout[txin.prevout.n].nValue;
@@ -3467,7 +3466,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
                 printf("  getblocks stopping at %d %s\n", pindex->nHeight, pindex->GetBlockHash().ToString().substr(0,20).c_str());
                 // ppcoin: tell downloading node about the latest block if it's
                 // without risk being rejected due to stake connection check
-                if (hashStop != hashBestChain && pindex->GetBlockTime() + GetStakeMinAge() > pindexBest->GetBlockTime())
+                if (hashStop != hashBestChain && pindex->GetBlockTime() + GetStakeMinAge(pindex->GetBlockTime()) > pindexBest->GetBlockTime())
                     pfrom->PushInventory(CInv(MSG_BLOCK, hashBestChain));
                 break;
             }

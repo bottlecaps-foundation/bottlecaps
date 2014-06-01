@@ -1556,6 +1556,7 @@ bool CWallet::GetStakeWeight(const CKeyStore& keystore, uint64& nMinWeight, uint
     int64 nBalance = GetBalance();
     int64 nReserveBalance = 0;
 
+
     if (mapArgs.count("-reservebalance") && !ParseMoney(mapArgs["-reservebalance"], nReserveBalance))
     {
         error("GetStakeWeight : invalid reserve balance amount");
@@ -1586,7 +1587,8 @@ bool CWallet::GetStakeWeight(const CKeyStore& keystore, uint64& nMinWeight, uint
                 continue;
         }
 
-        int64 nTimeWeight = GetWeight((int64)pcoin.first->nTime, (int64)GetTime());
+        int64 nPcoinTime =  pcoin.first->nTime;
+        int64 nTimeWeight = GetWeight(nPcoinTime, (int64)GetTime());
         CBigNum bnCoinDayWeight = CBigNum(pcoin.first->vout[pcoin.second].nValue) * nTimeWeight / COIN / (24 * 60 * 60);
 
         // Weight is greater than zero
@@ -1596,13 +1598,13 @@ bool CWallet::GetStakeWeight(const CKeyStore& keystore, uint64& nMinWeight, uint
         }
 
         // Weight is greater than zero, but the maximum value isn't reached yet
-        if (nTimeWeight > 0 && nTimeWeight < GetStakeMaxAge())
+        if (nTimeWeight > 0 && nTimeWeight < GetStakeMaxAge(nPcoinTime))
         {
             nMinWeight += bnCoinDayWeight.getuint64();
         }
 
         // Maximum weight was reached
-        if (nTimeWeight == GetStakeMaxAge())
+        if (nTimeWeight == GetStakeMaxAge(nPcoinTime))
         {
             nMaxWeight += bnCoinDayWeight.getuint64();
         }
@@ -1670,7 +1672,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
         }
 
         static int nMaxStakeSearchInterval = 60;
-        if (block.GetBlockTime() + GetStakeMinAge() > txNew.nTime - nMaxStakeSearchInterval)
+        if (block.GetBlockTime() + GetStakeMinAge(block.GetBlockTime()) > txNew.nTime - nMaxStakeSearchInterval)
             continue; // only count coins meeting min age requirement
 
         bool fKernelFound = false;
@@ -1774,7 +1776,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
             if (pcoin.first->vout[pcoin.second].nValue > nCombineThreshold)
                 continue;
             // Do not add input that is still too young
-            if (pcoin.first->nTime + GetStakeMaxAge() > txNew.nTime)
+            if (pcoin.first->nTime + GetStakeMaxAge(pcoin.first->nTime) > txNew.nTime)
                 continue;
             txNew.vin.push_back(CTxIn(pcoin.first->GetHash(), pcoin.second));
             nCredit += pcoin.first->vout[pcoin.second].nValue;

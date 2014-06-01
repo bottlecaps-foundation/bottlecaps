@@ -42,6 +42,9 @@ static const unsigned int VERSION2_SWITCH_TIME = 1404457454; // Fri, 04 Jul 2014
 
 
 
+
+
+
 static const int64 MIN_TXOUT_AMOUNT = MIN_TX_FEE;
 static const unsigned int PROTOCOL_SWITCH_TIME = 1371686400; // 20 Jun 2013 00:00:00
 
@@ -63,8 +66,21 @@ static const int fHaveUPnP = false;
 static const uint256 hashGenesisBlockOfficial("0xb70be2c6d7f6dfbb7cc874a6009b14e267b0e0ecb2e725152dd785829216dadd");
 static const uint256 hashGenesisBlockTestNet("0x");
 
-inline int64 PastDrift(int64 nTime)   { return nTime - 2 * 60 * 60; } // up to 2 hours from the past
-inline int64 FutureDrift(int64 nTime) { return nTime + 2 * 60 * 60; } // up to 2 hours from the future
+inline int64 PastDrift(int64 nTime)
+{
+    if (nTime > VERSION2_SWITCH_TIME)
+        return nTime - 15 * 60;  // up to 15 minutes from the past
+    else
+        return nTime - 2 * 60 * 60;  // up to 120 minutes from the past
+}
+
+inline int64 FutureDrift(int64 nTime)
+{
+    if (nTime > VERSION2_SWITCH_TIME)
+        return nTime + 15 * 60;  // up to 15 minutes from the future
+    else
+        return nTime + 2 * 60 * 60;  // up to 120 minutes from the future
+}
 
 extern CScript COINBASE_FLAGS;
 
@@ -132,8 +148,8 @@ int64 GetProofOfWorkReward(unsigned int nBits);
 int64 GetProofOfStakeReward(int64 nCoinAge, unsigned int nBits, unsigned int nTime, bool bCoinYearOnly=false);
 int64 GetProofOfStakeRewardV1(int64 nCoinAge, unsigned int nBits, unsigned int nTime, bool bCoinYearOnly=false);
 int64 GetProofOfStakeRewardV2(int64 nCoinAge, unsigned int nBits, unsigned int nTime, bool bCoinYearOnly=false);
-unsigned int GetStakeMinAge();
-unsigned int GetStakeMaxAge();
+unsigned int GetStakeMinAge(unsigned int nTime);
+unsigned int GetStakeMaxAge(unsigned int nTime);
 
 unsigned int ComputeMinWork(unsigned int nBase, int64 nTime);
 unsigned int ComputeMinStake(unsigned int nBase, int64 nTime, unsigned int nBlockTime);
