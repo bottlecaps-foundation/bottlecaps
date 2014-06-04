@@ -42,10 +42,14 @@ static CBigNum bnProofOfStakeLimitTestNet(~uint256(0) >> 20);
 
 unsigned int nStakeMinAge = 60 * 60 * 24 * 30; // minimum age for coin age
 unsigned int nStakeMaxAge = 60 * 60 * 24 * 90; // stake age of full weight
+//Tranz test net settings unsigned int nStakeMinAge = 60 * 60 * 2; // minimum age for coin age
+//Tranz test net settings unsigned int nStakeMaxAge = 60 * 60 * 24 * 5; // stake age of full weight
 
 //Version 2.0 will change weight 15/45 days
 unsigned int nStakeMinAgeV2 = 60 * 60 * 24 * 15; // minimum age for coin age
 unsigned int nStakeMaxAgeV2 = 60 * 60 * 24 * 45; // stake age of full weight
+//Tranz test net settings unsigned int nStakeMinAgeV2 = 60 * 60 * 1; // minimum age for coin age
+//Tranz test net settings unsigned int nStakeMaxAgeV2 = 60 * 60 * 24 * 2; // stake age of full weight
 
 unsigned int nStakeTargetSpacing = 1 * 60; // 1-minute block spacing
 int64 nChainStartTime = 1371910049;
@@ -2705,11 +2709,10 @@ bool LoadBlockIndex(bool fAllowNew)
 
         bnProofOfStakeLimit = bnProofOfStakeLimitTestNet; // 0x00000fff PoS base target is fixed in testnet
         bnProofOfWorkLimit = bnProofOfWorkLimitTestNet; // 0x0000ffff PoW base target is fixed in testnet
-        nStakeMinAge = 2 * 60 * 60; // test net min age is 2 hours
         nModifierInterval = 20 * 60; // test modifier interval is 20 minutes
-        nCoinbaseMaturity = 10; // test maturity is 10 blocks
+        nCoinbaseMaturity = 2; // test maturity is 2 blocks
         nCoinbaseMaturityMultipiler = 1;
-        nStakeTargetSpacing = 3 * 60; // test block spacing is 3 minutes
+        nStakeTargetSpacing = 1 * 60; // test block spacing is 1 minutes
     }
 
     //

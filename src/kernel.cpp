@@ -8,8 +8,6 @@
 #include "db.h"
 
 using namespace std;
-
-extern int nStakeMaxAge;
 extern int nStakeTargetSpacing;
 
 // Modifier interval: time to elapse before new modifier is computed
@@ -23,8 +21,6 @@ static std::map<int, unsigned int> mapStakeModifierCheckpoints =
     ( 48000, 0x8274b4fcu )
     ( 136822, 0xaafc7a2du )
     ( 477014, 0xd36de126 )
-
-
     ;
 	
 // Get time weight
@@ -284,7 +280,7 @@ bool CheckStakeKernelHash(unsigned int nBits, const CBlock& blockFrom, unsigned 
 
     unsigned int nTimeBlockFrom = blockFrom.GetBlockTime();
 
-    if (nTimeBlockFrom + GetStakeMinAge(nTimeTx) > nTimeTx) // Min age requirement
+    if (nTimeBlockFrom + GetStakeMinAge(nTimeBlockFrom) > nTimeTx) // Min age requirement
         return error("CheckStakeKernelHash() : min age violation");
 
     CBigNum bnTargetPerCoinDay;
