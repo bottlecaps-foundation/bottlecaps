@@ -7,6 +7,7 @@ class OptionsModel;
 class AddressTableModel;
 class TransactionTableModel;
 class CWallet;
+class CNodeStats;
 
 QT_BEGIN_NAMESPACE
 class QDateTime;
@@ -26,8 +27,19 @@ public:
     int getNumConnections() const;
     int getNumBlocks() const;
     int getNumBlocksAtStartup();
+    int getProtocolVersion() const;
+    qint64 getMoneySupply();
+    double getDifficulty(bool fProofofStake=false);
+    double getPoWMHashPS();
+    double getPosKernalPS();
+    int getStakeTargetSpacing();
+    double getProofOfStakeReward();
+    int getLastPoSBlock();
 
-    QDateTime getLastBlockDate() const;
+
+    QVector<CNodeStats> getPeerStats();
+
+    QDateTime getLastBlockDate(bool fProofofStake=false) const;
 
     //! Return true if client connected to testnet
     bool isTestNet() const;
@@ -40,6 +52,7 @@ public:
 
     QString formatFullVersion() const;
     QString formatBuildDate() const;
+    bool isReleaseVersion() const;
     QString clientName() const;
     QString formatClientStartupTime() const;
 
@@ -58,9 +71,10 @@ private:
 signals:
     void numConnectionsChanged(int count);
     void numBlocksChanged(int count, int countOfPeers);
+    void alertsChanged(const QString &warnings);
 
-    //! Asynchronous error notification
-    void error(const QString &title, const QString &message, bool modal);
+    //! Asynchronous message notification
+    void message(const QString &title, const QString &message, unsigned int style);
 
 public slots:
     void updateTimer();

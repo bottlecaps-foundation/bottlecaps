@@ -47,7 +47,7 @@ Value importprivkey(const Array& params, bool fHelp)
     bool fGood = vchSecret.SetString(strSecret);
 
     if (!fGood) throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid private key");
-    if (fWalletUnlockMintOnly) // ppcoin: no importprivkey in mint-only mode
+    if (pwalletMain->fWalletUnlockMintOnly) // No importprivkey in mint-only mode
         throw JSONRPCError(RPC_WALLET_UNLOCK_NEEDED, "Wallet is unlocked for minting only.");
 
     CKey key;
@@ -71,6 +71,25 @@ Value importprivkey(const Array& params, bool fHelp)
     return Value::null;
 }
 
+Value importwallet(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() != 1)
+        throw runtime_error(
+            "importwallet <filename>\n"
+            "Imports keys from a wallet dump file (see dumpwallet)."
+            + HelpRequiringPassphrase());
+
+    EnsureWalletIsUnlocked();
+
+    if (pwalletMain->fWalletUnlockMintOnly) // No importwallet in mint-only mode
+        throw JSONRPCError(RPC_WALLET_UNLOCK_NEEDED, "Wallet is unlocked for minting only.");
+
+    if(!ImportWallet(pwalletMain,params[0].get_str().c_str()))
+       throw JSONRPCError(RPC_WALLET_ERROR, "Error adding some keys to wallet");
+
+    return Value::null;
+}
+
 Value dumpprivkey(const Array& params, bool fHelp)
 {
     if (fHelp || params.size() != 1)
@@ -82,7 +101,7 @@ Value dumpprivkey(const Array& params, bool fHelp)
     CBitcoinAddress address;
     if (!address.SetString(strAddress))
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid BottleCaps address");
-    if (fWalletUnlockMintOnly) // ppcoin: no dumpprivkey in mint-only mode
+    if (pwalletMain->fWalletUnlockMintOnly) // No dumpprivkey in mint-only mode
         throw JSONRPCError(RPC_WALLET_UNLOCK_NEEDED, "Wallet is unlocked for minting only.");
     CKeyID keyID;
     if (!address.GetKeyID(keyID))
@@ -92,4 +111,23 @@ Value dumpprivkey(const Array& params, bool fHelp)
     if (!pwalletMain->GetSecret(keyID, vchSecret, fCompressed))
         throw JSONRPCError(RPC_WALLET_ERROR, "Private key for address " + strAddress + " is not known");
     return CBitcoinSecret(vchSecret, fCompressed).ToString();
+}
+
+Value dumpwallet(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() != 1)
+        throw runtime_error(
+            "dumpwallet <filename>\n"
+            "Dumps all wallet keys in a human-readable format."
+            + HelpRequiringPassphrase());
+
+    EnsureWalletIsUnlocked();
+
+    if (pwalletMain->fWalletUnlockMintOnly) // No dumpwallet in mint-only mode
+        throw JSONRPCError(RPC_WALLET_UNLOCK_NEEDED, "Wallet is unlocked for minting only.");
+
+    if(!DumpWallet(pwalletMain, params[0].get_str().c_str() ))
+      throw JSONRPCError(RPC_WALLET_ERROR, "Error dumping wallet keys to file");
+
+    return Value::null;
 }
