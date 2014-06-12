@@ -513,8 +513,10 @@ void BitcoinGUI::createTrayIconMenu()
 #endif
 
     // Configuration of the tray icon (or dock icon) icon menu
+#ifndef Q_OS_MAC // This is built-in on Mac
     trayIconMenu->addAction(toggleHideAction);
     trayIconMenu->addSeparator();
+#endif
     trayIconMenu->addAction(sendCoinsAction);
     trayIconMenu->addAction(receiveCoinsAction);
     trayIconMenu->addSeparator();
