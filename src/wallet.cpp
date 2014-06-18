@@ -1708,7 +1708,6 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
                 if (whichType == TX_PUBKEYHASH) // pay to address type
                 {
                     // convert to pay to public key type
-                    CKey key;
                     if (!keystore.GetKey(uint160(vSolutions[0]), key))
                     {
                         if (fDebug && GetBoolArg("-printcoinstake"))
