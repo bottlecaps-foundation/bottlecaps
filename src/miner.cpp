@@ -763,7 +763,6 @@ void StakeMiner(CWallet *pwallet)
 
         while (pwallet->IsLocked())
         {
-            strMintWarning = strMintMessage;
             Sleep(1000);
             if (fShutdown)
                 return;
