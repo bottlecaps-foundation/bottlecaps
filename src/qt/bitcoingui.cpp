@@ -27,6 +27,8 @@
 #include "rpcconsole.h"
 #include "ui_interface.h"
 #include "net.h"
+#include "savingsdialog.h"
+#include "blockbrowser.h"
 
 #ifdef Q_OS_MAC
 #include "macdockiconhandler.h"
@@ -119,6 +121,9 @@ BitcoinGUI::BitcoinGUI(QWidget *parent):
     sendCoinsPage = new SendCoinsDialog(this);
 
     signVerifyMessageDialog = new SignVerifyMessageDialog(this);
+    autoSavingsDialog = new AutoSavingsDialog(this);
+
+    blockBrowser = new BlockBrowser((this));
 
     centralWidget = new QStackedWidget(this);
     centralWidget->addWidget(overviewPage);
@@ -126,6 +131,7 @@ BitcoinGUI::BitcoinGUI(QWidget *parent):
     centralWidget->addWidget(addressBookPage);
     centralWidget->addWidget(receiveCoinsPage);
     centralWidget->addWidget(sendCoinsPage);
+    centralWidget->addWidget(autoSavingsDialog);
     setCentralWidget(centralWidget);
 
     // Create status bar
@@ -198,6 +204,12 @@ BitcoinGUI::BitcoinGUI(QWidget *parent):
     // Clicking on "Sign Message" in the receive coins page sends you to the sign message tab
     connect(receiveCoinsPage, SIGNAL(signMessage(QString)), this, SLOT(gotoSignMessageTab(QString)));
 
+    // Clicking on "Auto Savings" in the address book sends you to the auto savings page
+    connect(addressBookPage, SIGNAL(autoSavingsSignal(QString)), this, SLOT(savingsClicked(QString)));
+
+    // Clicking on "Block Browser" in the transaction page sends you to the blockbrowser
+    connect(transactionView, SIGNAL(blockBrowserSignal(QString)), this, SLOT(gotoBlockBrowser(QString)));
+
     // Install event filter to be able to catch status tip events (QEvent::StatusTip)
     this->installEventFilter(this);
 
@@ -252,6 +264,29 @@ void BitcoinGUI::createActions()
     addressBookAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_5));
     tabGroup->addAction(addressBookAction);
 
+    savingsAction = new QAction(QIcon(":/icons/send"), tr("Auto &Savings"), this);
+    savingsAction->setStatusTip(tr("Enable Auto Savings"));
+    savingsAction->setToolTip(savingsAction->statusTip());
+    savingsAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_7));
+    savingsAction->setCheckable(true);
+    tabGroup->addAction(savingsAction);
+
+    blockAction = new QAction(QIcon(":/icons/blexp"), tr("Block Bro&wser"), this);
+    blockAction->setStatusTip(tr("Explore the BlockChain"));
+    blockAction->setToolTip(blockAction->statusTip());
+
+    blocksIconAction = new QAction(QIcon(":/icons/info"), tr("Current &Block Info"), this);
+    blocksIconAction->setStatusTip(tr("Get Current Block Information"));
+    blocksIconAction->setToolTip(blocksIconAction->statusTip());
+
+    stakingIconAction = new QAction(QIcon(":/icons/info"), tr("Current &PoS Block Info"), this);
+    stakingIconAction->setStatusTip(tr("Get Current PoS Block Information"));
+    stakingIconAction->setToolTip(stakingIconAction->statusTip());
+
+    connectionIconAction = new QAction(QIcon(":/icons/info"), tr("Current &Node Info"), this);
+    connectionIconAction->setStatusTip(tr("Get Current Peer Information"));
+    connectionIconAction->setToolTip(connectionIconAction->statusTip());
+
     connect(overviewAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
     connect(overviewAction, SIGNAL(triggered()), this, SLOT(gotoOverviewPage()));
 
@@ -266,6 +301,9 @@ void BitcoinGUI::createActions()
 
     connect(addressBookAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
     connect(addressBookAction, SIGNAL(triggered()), this, SLOT(gotoAddressBookPage()));
+
+    connect(savingsAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
+    connect(savingsAction, SIGNAL(triggered()), this, SLOT(savingsClicked()));
 
     quitAction = new QAction(QIcon(":/icons/quit"), tr("E&xit"), this);
     quitAction->setStatusTip(tr("Quit application"));
@@ -346,7 +384,10 @@ void BitcoinGUI::createActions()
     connect(verifyMessageAction, SIGNAL(triggered()), this, SLOT(gotoVerifyMessageTab()));
     connect(unlockWalletAction, SIGNAL(triggered()), this, SLOT(unlockWalletForMint()));
     connect(lockWalletAction, SIGNAL(triggered()), this, SLOT(lockWallet()));
-
+    connect(blockAction, SIGNAL(triggered()), this, SLOT(gotoBlockBrowser()));
+    connect(blocksIconAction, SIGNAL(triggered()), this, SLOT(blocksIconClicked()));
+    connect(connectionIconAction, SIGNAL(triggered()), this, SLOT(connectionIconClicked()));
+    connect(stakingIconAction, SIGNAL(triggered()), this, SLOT(stakingIconClicked()));
 }
 
 void BitcoinGUI::createMenuBar()
@@ -385,6 +426,13 @@ void BitcoinGUI::createMenuBar()
     wallet->addAction(signMessageAction);
     wallet->addAction(verifyMessageAction);
 
+    QMenu *network = appMenuBar->addMenu(tr("&Network"));
+    network->addAction(blockAction);
+    network->addSeparator();
+    network->addAction(blocksIconAction);
+    network->addAction(stakingIconAction);
+    network->addAction(connectionIconAction);
+
 
     QMenu *help = appMenuBar->addMenu(tr("&Help"));
     help->addAction(openRPCConsoleAction);
@@ -402,6 +450,7 @@ void BitcoinGUI::createToolBars()
     toolbar->addAction(receiveCoinsAction);
     toolbar->addAction(historyAction);
     toolbar->addAction(addressBookAction);
+    toolbar->addAction(savingsAction);
 
     QToolBar *toolbar2 = addToolBar(tr("Actions toolbar"));
     toolbar2->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
@@ -472,6 +521,7 @@ void BitcoinGUI::setWalletModel(WalletModel *walletModel)
         receiveCoinsPage->setModel(walletModel->getAddressTableModel());
         sendCoinsPage->setModel(walletModel);
         signVerifyMessageDialog->setModel(walletModel);
+        autoSavingsDialog->setModel(walletModel);
 
         setEncryptionStatus(walletModel->getEncryptionStatus());
         connect(walletModel, SIGNAL(encryptionStatusChanged(int)), this, SLOT(setEncryptionStatus(int)));
@@ -941,6 +991,14 @@ void BitcoinGUI::gotoAddressBookPage()
     connect(exportAction, SIGNAL(triggered()), addressBookPage, SLOT(exportClicked()));
 }
 
+void BitcoinGUI::gotoBlockBrowser(QString transactionId)
+{
+    if(!transactionId.isEmpty())
+        blockBrowser->setTransactionId(transactionId);
+
+    blockBrowser->show();
+}
+
 void BitcoinGUI::gotoReceiveCoinsPage()
 {
     receiveCoinsAction->setChecked(true);
@@ -955,6 +1013,18 @@ void BitcoinGUI::gotoSendCoinsPage()
 {
     sendCoinsAction->setChecked(true);
     centralWidget->setCurrentWidget(sendCoinsPage);
+
+    exportAction->setEnabled(false);
+    disconnect(exportAction, SIGNAL(triggered()), 0, 0);
+}
+
+void BitcoinGUI::savingsClicked(QString addr)
+{
+    savingsAction->setChecked(true);
+    centralWidget->setCurrentWidget(autoSavingsDialog);
+
+    if(!addr.isEmpty())
+        autoSavingsDialog->setAddress(addr);
 
     exportAction->setEnabled(false);
     disconnect(exportAction, SIGNAL(triggered()), 0, 0);

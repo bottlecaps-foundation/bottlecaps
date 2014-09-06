@@ -216,11 +216,12 @@ Value getaccountaddress(const Array& params, bool fHelp)
 
 Value autosavings(const Array &params, bool fHelp)
 {
-    if (fHelp || params.size() != 2)
+    if (fHelp || params.size() < 2 || params.size() > 4)
         throw runtime_error(
-            "autosavings <BottleCapsaddress> <percent>\n"
+            "autosavings <BottleCapsaddress> <percent> [min amount] [max amount]\n"
             "Gives a percentage of a found stake to a different address, after stake matures\n"
             "Percent is a whole number 1 to 50.\n"
+            "Min and Max Amount are optional\n"
             "Set percentage to zero to turn off"
             + HelpRequiringPassphrase());
 
@@ -236,23 +237,68 @@ Value autosavings(const Array &params, bool fHelp)
 
     unsigned int nPer = (unsigned int) params[1].get_int();
 
-    //Turn off if we set to zero.
-    //Future: After we allow multiple addresses, only turn of this address
-    if(nPer == 0)
+    int64 nMinAmount = MIN_TXOUT_AMOUNT;
+    int64 nMaxAmount = MAX_MONEY;
+
+    // Optional Min Amount
+    if (params.size() > 2)
     {
-        pwalletMain->fAutoSavings = false;
-        pwalletMain->AutoSavingsAddress = "";
-        pwalletMain->nAutoSavingsPercent = 0;
-        return Value::null;
+        int64 nAmount = AmountFromValue(params[2]);
+        if (nAmount < MIN_TXOUT_AMOUNT)
+            throw JSONRPCError(-101, "Send amount too small");
+        else
+             nMinAmount = nAmount;
     }
 
-    //For now max percentage is 50.
-    if (nPer > 50 )
-       nPer = 50;
+    // Optional Max Amount
+    if (params.size() > 3)
+    {
+        int64 nAmount = AmountFromValue(params[3]);
 
-    pwalletMain->AutoSavingsAddress = address;
-    pwalletMain->nAutoSavingsPercent = nPer;
-    pwalletMain->fAutoSavings = true;
+         if (nAmount < MIN_TXOUT_AMOUNT)
+            throw JSONRPCError(-101, "Send amount too small");
+         else
+             nMaxAmount = nAmount;
+    }
+
+    CWalletDB walletdb(pwalletMain->strWalletFile);
+
+    LOCK(pwalletMain->cs_wallet);
+    {
+        bool fFileBacked = pwalletMain->fFileBacked;
+        //Turn off if we set to zero.
+        //Future: After we allow multiple addresses, only turn of this address
+        if(nPer == 0)
+        {
+            pwalletMain->fAutoSavings = false;
+            pwalletMain->nAutoSavingsPercent = 0;
+            pwalletMain->nAutoSavingsMin = nMinAmount;
+            pwalletMain->nAutoSavingsMax = nMaxAmount;
+
+            if(fFileBacked)
+                walletdb.EraseAutoSavings(pwalletMain->strAutoSavingsAddress.ToString());
+
+            pwalletMain->strAutoSavingsAddress = "";
+
+            return Value::null;
+        }
+
+          //For now max percentage is 50.
+          if (nPer > 50 )
+             nPer = 50;
+
+          if(fFileBacked)
+              walletdb.EraseAutoSavings(pwalletMain->strAutoSavingsAddress.ToString());
+
+          pwalletMain->strAutoSavingsAddress = address;
+          pwalletMain->nAutoSavingsPercent = nPer;
+          pwalletMain->fAutoSavings = true;
+          pwalletMain->nAutoSavingsMin = nMinAmount;
+          pwalletMain->nAutoSavingsMax = nMaxAmount;
+
+          if(fFileBacked)
+              walletdb.WriteAutoSavings(address.ToString(), nPer);
+    }
 
     return Value::null;
 }

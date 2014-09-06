@@ -14,8 +14,8 @@
 
 static const int64 nClientStartupTime = GetTime();
 double GetDifficulty(const CBlockIndex* blockindex);
-double GetPoWMHashPS();
-double GetPoSKernelPS();
+double GetPoWMHashPS(const CBlockIndex* blockindex = NULL);
+double GetPoSKernelPS(const CBlockIndex* blockindex = NULL);
 extern unsigned int nStakeTargetSpacing;
 
 ClientModel::ClientModel(OptionsModel *optionsModel, QObject *parent) :
