@@ -419,6 +419,17 @@ ReadKeyValue(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue,
         {
             ssValue >> pwallet->nOrderPosNext;
         }
+        else if (strType == "ats")
+        {
+            string strAutoSavingsAccount;
+            ssKey >> strAutoSavingsAccount;
+            if (CBitcoinAddress(strAutoSavingsAccount).IsValid())
+            {
+                pwallet->fAutoSavings = true;
+                pwallet->strAutoSavingsAddress = CBitcoinAddress(strAutoSavingsAccount).Get();
+                ssValue >> pwallet->nAutoSavingsPercent;
+            }
+        }
     } catch (...)
     {
         return false;

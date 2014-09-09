@@ -33,7 +33,7 @@ enum WalletFeature
     FEATURE_WALLETCRYPT = 40000, // wallet encryption
     FEATURE_COMPRPUBKEY = 60000, // compressed public keys
 
-    FEATURE_LATEST = 60001
+    FEATURE_LATEST = 60002
 };
 
 
@@ -89,7 +89,9 @@ public:
     bool fWalletUnlockMintOnly;
     bool fAutoSavings;
     int nAutoSavingsPercent;
-    CBitcoinAddress AutoSavingsAddress;
+    int64 nAutoSavingsMin;
+    int64 nAutoSavingsMax;
+    CBitcoinAddress strAutoSavingsAddress;
 
     std::set<int64> setKeyPool;
     std::map<CKeyID, CKeyMetadata> mapKeyMetadata;
@@ -110,7 +112,9 @@ public:
         fWalletUnlockMintOnly = false;
         fAutoSavings = false;
         nAutoSavingsPercent = 0;
-        AutoSavingsAddress = "";
+        strAutoSavingsAddress = "";
+        nAutoSavingsMin = 0;
+        nAutoSavingsMax = 0;
 
     }
     CWallet(std::string strWalletFileIn)
@@ -125,7 +129,9 @@ public:
         fWalletUnlockMintOnly = false;
         fAutoSavings = false;
         nAutoSavingsPercent = 0;
-        AutoSavingsAddress = "";
+        strAutoSavingsAddress = "";
+        nAutoSavingsMin = MIN_TXOUT_AMOUNT;
+        nAutoSavingsMax = MAX_MONEY;
     }
 
     std::map<uint256, CWalletTx> mapWallet;

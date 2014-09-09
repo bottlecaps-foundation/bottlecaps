@@ -322,6 +322,36 @@ bool WalletModel::backupWallet(const QString &filename)
     return BackupWallet(*wallet, filename.toLocal8Bit().data());
 }
 
+void WalletModel::setAutoSavings(bool fAutoSavings, int& nAutoSavingsPercent, CBitcoinAddress& strAutoSavingsAddress,
+                                     int64& nAutoSavingsMin, int64& nAutoSavingsMax)
+{
+    // This function assumes the values were checked before being called
+    if (wallet->fFileBacked) // Tranz add option to not save.
+    {
+        CWalletDB walletdb(wallet->strWalletFile);
+        if (fAutoSavings) {
+            walletdb.EraseAutoSavings(wallet->strAutoSavingsAddress.ToString());
+            walletdb.WriteAutoSavings(strAutoSavingsAddress.ToString(), nAutoSavingsPercent );
+        }
+        else {
+            walletdb.EraseAutoSavings(wallet->strAutoSavingsAddress.ToString());
+            walletdb.EraseAutoSavings(strAutoSavingsAddress.ToString());
+        }
+
+        if(fDebug)
+          printf("setAutoSavings: %s %d\n", strAutoSavingsAddress.ToString().c_str(), nAutoSavingsPercent);
+    }
+
+    {
+        LOCK(wallet->cs_wallet);
+        wallet->fAutoSavings = fAutoSavings;
+        wallet->nAutoSavingsPercent = nAutoSavingsPercent;
+        wallet->strAutoSavingsAddress = strAutoSavingsAddress;
+        wallet->nAutoSavingsMin = nAutoSavingsMin;
+        wallet->nAutoSavingsMax = nAutoSavingsMax;
+    }
+}
+
 int WalletModel::getAutoSavingsPercent()
 {
   return wallet->nAutoSavingsPercent;
@@ -329,10 +359,10 @@ int WalletModel::getAutoSavingsPercent()
 
 QString WalletModel::getAutoSavingsAddress()
 {
-    if (!wallet->AutoSavingsAddress.IsValid())
+    if (!wallet->strAutoSavingsAddress.IsValid())
         return "Not Saving";
     else
-        return wallet->AutoSavingsAddress.ToString().c_str();
+        return wallet->strAutoSavingsAddress.ToString().c_str();
 }
 
 bool WalletModel::dumpWallet(const QString &filename)

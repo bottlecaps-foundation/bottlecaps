@@ -372,7 +372,7 @@ void CWallet::WalletUpdateSpent(const CTransaction &tx, bool fBlock)
                     printf("WalletUpdateSpent: bad wtx %s\n", wtx.GetHash().ToString().c_str());
                 else if (!wtx.IsSpent(txin.prevout.n) && IsMine(wtx.vout[txin.prevout.n]))
                 {
-                    printf("WalletUpdateSpent found spent coin %snvc %s\n", FormatMoney(wtx.GetCredit()).c_str(), wtx.GetHash().ToString().c_str());
+                    printf("WalletUpdateSpent found spent coin %scap %s\n", FormatMoney(wtx.GetCredit()).c_str(), wtx.GetHash().ToString().c_str());
                     wtx.MarkSpent(txin.prevout.n);
                     wtx.WriteToDisk();
                     NotifyTransactionChanged(this, txin.prevout.hash, CT_UPDATED);
@@ -920,7 +920,7 @@ void CWallet::ReacceptWalletTransactions()
                 }
                 if (fUpdated)
                 {
-                    printf("ReacceptWalletTransactions found spent coin %snvc %s\n", FormatMoney(wtx.GetCredit()).c_str(), wtx.GetHash().ToString().c_str());
+                    printf("ReacceptWalletTransactions found spent coin %scap %s\n", FormatMoney(wtx.GetCredit()).c_str(), wtx.GetHash().ToString().c_str());
                     wtx.MarkDirty();
                     wtx.WriteToDisk();
                 }
@@ -1193,7 +1193,6 @@ int64 CWallet::GetNewMint() const
 
 bool CWallet::AutoSavings()
 {
-
     if ( IsInitialBlockDownload() || IsLocked() )
         return false;
 
@@ -1210,15 +1209,17 @@ bool CWallet::AutoSavings()
                 // Calculate Amount for Savings
                 nNet = ( ( pcoin->GetCredit() - pcoin->GetDebit() ) * nAutoSavingsPercent )/100;
 
-                // Do not send if amount is too low
-                if (nNet < MIN_TXOUT_AMOUNT )
+                // Do not send if amount is too low/high
+                if (nNet <= nAutoSavingsMin || nNet >= nAutoSavingsMax )
                 {
-                    printf("AutoSavings: Amount: %s is below MIN_TXOUT_AMOUNT: %s\n",FormatMoney(nNet).c_str(),FormatMoney(MIN_TXOUT_AMOUNT).c_str());
+                    printf("AutoSavings: Amount: %s is not in range of Min: %s and Max:%s\n",FormatMoney(nNet).c_str(),FormatMoney
+                           (nAutoSavingsMin).c_str(),FormatMoney
+                           (nAutoSavingsMax).c_str());
                     return false;
                 }
 
-                printf("AutoSavings Sending: %s to Address: %s\n", FormatMoney(nNet).c_str(), AutoSavingsAddress.ToString().c_str());
-                SendMoneyToDestination(AutoSavingsAddress.Get(), nNet, wtx, false,true);
+                printf("AutoSavings Sending: %s to Address: %s\n", FormatMoney(nNet).c_str(), strAutoSavingsAddress.ToString().c_str());
+                SendMoneyToDestination(strAutoSavingsAddress.Get(), nNet, wtx, false,true);
             }
         }
     }
