@@ -197,7 +197,7 @@ WalletModel::SendCoinsReturn WalletModel::sendCoins(const QList<SendCoinsRecipie
         CWalletTx wtx;
         CReserveKey keyChange(wallet);
         int64 nFeeRequired = 0;
-        bool fCreated = wallet->CreateTransaction(vecSend, wtx, keyChange, nFeeRequired, coinControl);
+        bool fCreated = wallet->CreateTransaction(vecSend, wtx, keyChange, nFeeRequired, false, coinControl);
 
         if(!fCreated)
         {
@@ -322,8 +322,10 @@ bool WalletModel::backupWallet(const QString &filename)
     return BackupWallet(*wallet, filename.toLocal8Bit().data());
 }
 
-void WalletModel::setAutoSavings(bool fAutoSavings, int& nAutoSavingsPercent, CBitcoinAddress& strAutoSavingsAddress,
-                                     int64& nAutoSavingsMin, int64& nAutoSavingsMax)
+void WalletModel::setAutoSavings(bool fAutoSavings, int& nAutoSavingsPercent,
+                                 CBitcoinAddress& strAutoSavingsAddress,
+                                 CBitcoinAddress& strAutoSavingsChangeAddress,
+                                 int64& nAutoSavingsMin, int64& nAutoSavingsMax)
 {
     // This function assumes the values were checked before being called
     if (wallet->fFileBacked) // Tranz add option to not save.
@@ -331,7 +333,11 @@ void WalletModel::setAutoSavings(bool fAutoSavings, int& nAutoSavingsPercent, CB
         CWalletDB walletdb(wallet->strWalletFile);
         if (fAutoSavings) {
             walletdb.EraseAutoSavings(wallet->strAutoSavingsAddress.ToString());
-            walletdb.WriteAutoSavings(strAutoSavingsAddress.ToString(), nAutoSavingsPercent );
+            walletdb.WriteAutoSavings(strAutoSavingsAddress.ToString(),
+                                      nAutoSavingsPercent,
+                                      strAutoSavingsChangeAddress.ToString(),
+                                      nAutoSavingsMin,
+                                      nAutoSavingsMax);
         }
         else {
             walletdb.EraseAutoSavings(wallet->strAutoSavingsAddress.ToString());
@@ -347,22 +353,23 @@ void WalletModel::setAutoSavings(bool fAutoSavings, int& nAutoSavingsPercent, CB
         wallet->fAutoSavings = fAutoSavings;
         wallet->nAutoSavingsPercent = nAutoSavingsPercent;
         wallet->strAutoSavingsAddress = strAutoSavingsAddress;
+        wallet->strAutoSavingsChangeAddress = strAutoSavingsChangeAddress;
         wallet->nAutoSavingsMin = nAutoSavingsMin;
         wallet->nAutoSavingsMax = nAutoSavingsMax;
     }
 }
 
-int WalletModel::getAutoSavingsPercent()
+void WalletModel::getAutoSavings(int& nAutoSavingsPercent,
+                                 CBitcoinAddress& strAutoSavingsAddress,
+                                 CBitcoinAddress& strAutoSavingsChangeAddress,
+                                 int64& nAutoSavingsMin,
+                                 int64& nAutoSavingsMax)
 {
-  return wallet->nAutoSavingsPercent;
-}
-
-QString WalletModel::getAutoSavingsAddress()
-{
-    if (!wallet->strAutoSavingsAddress.IsValid())
-        return "Not Saving";
-    else
-        return wallet->strAutoSavingsAddress.ToString().c_str();
+      nAutoSavingsPercent = wallet->nAutoSavingsPercent;
+      strAutoSavingsAddress = wallet->strAutoSavingsAddress;
+      strAutoSavingsChangeAddress = wallet->strAutoSavingsChangeAddress;
+      nAutoSavingsMin = wallet->nAutoSavingsMin;
+      nAutoSavingsMax = wallet->nAutoSavingsMax;
 }
 
 bool WalletModel::dumpWallet(const QString &filename)
@@ -549,4 +556,9 @@ void WalletModel::unlockCoin(COutPoint& output)
 void WalletModel::listLockedCoins(std::vector<COutPoint>& vOutpts)
 {
     return;
+}
+
+bool WalletModel::isMine(const CBitcoinAddress &address)
+{
+    return IsMine(*wallet, address.Get());
 }

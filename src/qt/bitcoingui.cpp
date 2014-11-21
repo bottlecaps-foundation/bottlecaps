@@ -29,6 +29,7 @@
 #include "net.h"
 #include "savingsdialog.h"
 #include "blockbrowser.h"
+#include "base58.h"
 
 #ifdef Q_OS_MAC
 #include "macdockiconhandler.h"
@@ -691,6 +692,14 @@ void BitcoinGUI::stakingIconClicked()
    uint64 nMinWeight = 0, nMaxWeight = 0, nWeight = 0;
    walletModel->getStakeWeight(nMinWeight,nMaxWeight,nWeight);
 
+   CBitcoinAddress strAddress;
+   CBitcoinAddress strChangeAddress;
+   int nPer;
+   int64 nMin;
+   int64 nMax;
+
+   walletModel->getAutoSavings(nPer, strAddress, strChangeAddress, nMin, nMax);
+
    int unit = clientModel->getOptionsModel()->getDisplayUnit();
 
    message(tr("Extended Staking Information"),
@@ -715,8 +724,8 @@ void BitcoinGUI::stakingIconClicked()
          .arg(clientModel->getPosKernalPS())
          .arg(clientModel->getProofOfStakeReward())
          .arg(nWeight)
-         .arg(walletModel->getAutoSavingsAddress())
-         .arg(walletModel->getAutoSavingsPercent())
+         .arg(strAddress.IsValid() ? strAddress.ToString().c_str() : "Not Saving")
+         .arg(nPer)
          .arg(BitcoinUnits::formatWithUnit(unit, clientModel->getMoneySupply(), false))
       ,CClientUIInterface::MODAL);
 }

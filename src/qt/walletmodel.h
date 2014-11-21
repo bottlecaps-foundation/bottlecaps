@@ -109,11 +109,16 @@ public:
     void getStakeWeightFromValue(const qint64& nTime, const qint64& nValue, quint64& nWeight);
     //PoS Information
     void getStakeWeight(quint64& nMinWeight, quint64& nMaxWeight, quint64& nWeight);
-    //Wallet Information about Auto Savings
-    int getAutoSavingsPercent();
-    QString getAutoSavingsAddress();
-    void setAutoSavings(bool fAutoSavings, int& nAutoSavingsPercent, CBitcoinAddress& strAutoSavingsAddress,
-                                         qint64& nAutoSavingsMin, qint64& nAutoSavingsMax);
+    //setAutoSavings Wallet settings
+    void setAutoSavings(bool fAutoSavings, int& nAutoSavingsPercent,
+                        CBitcoinAddress& strAutoSavingsAddress,
+                        CBitcoinAddress& strAutoSavingsChangeAddress,
+                        qint64& nAutoSavingsMin, qint64& nAutoSavingsMax);
+    // Wallet Information about Auto Savings
+    void getAutoSavings(int& nAutoSavingsPercent,
+                        CBitcoinAddress& strAutoSavingsAddress,
+                        CBitcoinAddress& strAutoSavingsChangeAddress,
+                        qint64& nAutoSavingsMin, qint64& nAutoSavingsMax);
 
     // RAI object for unlocking wallet, returned by requestUnlock()
     class UnlockContext
@@ -144,6 +149,7 @@ public:
 	void lockCoin(COutPoint& output);
 	void unlockCoin(COutPoint& output);
 	void listLockedCoins(std::vector<COutPoint>& vOutpts);
+	bool isMine(const CBitcoinAddress &address);
 	
 
 private:

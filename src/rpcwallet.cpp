@@ -216,12 +216,12 @@ Value getaccountaddress(const Array& params, bool fHelp)
 
 Value autosavings(const Array &params, bool fHelp)
 {
-    if (fHelp || params.size() < 2 || params.size() > 4)
+    if (fHelp || params.size() < 2 || params.size() > 5)
         throw runtime_error(
-            "autosavings <BottleCapsaddress> <percent> [min amount] [max amount]\n"
+            "autosavings <BottleCapsaddress> <percent> [Change Address] [min amount] [max amount]\n"
             "Gives a percentage of a found stake to a different address, after stake matures\n"
             "Percent is a whole number 1 to 50.\n"
-            "Min and Max Amount are optional\n"
+            "Change Address, Min and Max Amount are optional\n"
             "Set percentage to zero to turn off"
             + HelpRequiringPassphrase());
 
@@ -240,10 +240,22 @@ Value autosavings(const Array &params, bool fHelp)
     int64 nMinAmount = MIN_TXOUT_AMOUNT;
     int64 nMaxAmount = MAX_MONEY;
 
+    // Optional Change Address
+    CBitcoinAddress changeAddress;
+    if (params.size() > 2) {
+        changeAddress = params[2].get_str();
+        if (!changeAddress.IsValid())
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid BottleCaps change address");
+        else {
+            if(!IsMine(*pwalletMain, changeAddress.Get()))
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "BottleCaps change address not owned");
+        }
+    }
+
     // Optional Min Amount
-    if (params.size() > 2)
+    if (params.size() > 3)
     {
-        int64 nAmount = AmountFromValue(params[2]);
+        int64 nAmount = AmountFromValue(params[3]);
         if (nAmount < MIN_TXOUT_AMOUNT)
             throw JSONRPCError(-101, "Send amount too small");
         else
@@ -251,11 +263,10 @@ Value autosavings(const Array &params, bool fHelp)
     }
 
     // Optional Max Amount
-    if (params.size() > 3)
+    if (params.size() > 4)
     {
-        int64 nAmount = AmountFromValue(params[3]);
-
-         if (nAmount < MIN_TXOUT_AMOUNT)
+        int64 nAmount = AmountFromValue(params[4]);
+        if (nAmount < MIN_TXOUT_AMOUNT)
             throw JSONRPCError(-101, "Send amount too small");
          else
              nMaxAmount = nAmount;
@@ -279,6 +290,7 @@ Value autosavings(const Array &params, bool fHelp)
                 walletdb.EraseAutoSavings(pwalletMain->strAutoSavingsAddress.ToString());
 
             pwalletMain->strAutoSavingsAddress = "";
+            pwalletMain->strAutoSavingsChangeAddress = "";
 
             return Value::null;
         }
@@ -292,12 +304,13 @@ Value autosavings(const Array &params, bool fHelp)
 
           pwalletMain->strAutoSavingsAddress = address;
           pwalletMain->nAutoSavingsPercent = nPer;
+          pwalletMain->strAutoSavingsChangeAddress = changeAddress;
           pwalletMain->fAutoSavings = true;
           pwalletMain->nAutoSavingsMin = nMinAmount;
           pwalletMain->nAutoSavingsMax = nMaxAmount;
 
           if(fFileBacked)
-              walletdb.WriteAutoSavings(address.ToString(), nPer);
+              walletdb.WriteAutoSavings(address.ToString(), nPer, changeAddress.ToString(), nMinAmount, nMaxAmount);
     }
 
     return Value::null;

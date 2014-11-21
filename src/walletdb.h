@@ -185,16 +185,24 @@ public:
         return Write(std::string("minversion"), nVersion);
     }
 
-    bool WriteAutoSavings(std::string strAutoSavingsAddress, int nAutoSavingsPercent)
+    bool WriteAutoSavings(std::string strAutoSavingsAddress,
+                          int nAutoSavingsPercent,
+                          std::string strAutoSavingsChangeAddress,
+                          int64 nAutoSavingsMinAmount,
+                          int64 nAutoSavingsMaxAmount)
     {
         nWalletDBUpdated++;
-        return Write(std::make_pair(std::string("ats"),strAutoSavingsAddress),nAutoSavingsPercent);
+        if (!Write(std::make_pair(std::string("ats"), strAutoSavingsAddress),std::make_pair(strAutoSavingsChangeAddress ,nAutoSavingsPercent)))
+            return false;
+
+        return Write(std::make_pair(std::string("ats2"), strAutoSavingsAddress),std::make_pair(nAutoSavingsMinAmount ,nAutoSavingsMaxAmount));
     }
 
     bool EraseAutoSavings(std::string strAutoSavingsAddress)
     {
         nWalletDBUpdated++;
         return Erase(std::make_pair(std::string("ats"), strAutoSavingsAddress));
+        return Erase(std::make_pair(std::string("ats2"), strAutoSavingsAddress));
     }
 
     bool ReadAccount(const std::string& strAccount, CAccount& account);
