@@ -84,6 +84,8 @@ int64 nHPSTimerStart;
 // Settings
 int64 nTransactionFee = MIN_TX_FEE;
 int64 nMinimumInputValue = MIN_TX_FEE;
+int64 nSplitThreshold = 10 * COIN;
+int64 nCombineThreshold = nSplitThreshold * 2;
 
 extern enum Checkpoints::CPMode CheckpointsMode;
 
