@@ -39,6 +39,12 @@ static const int64 MAX_MINT_PROOF_OF_STAKE = 1 * CENT;
 //Version 2.0
 static const int64 MAX_MINT_PROOF_OF_STAKEV2 = 200 * CENT;
 static const unsigned int VERSION2_SWITCH_TIME = 1404457454; // Fri, 04 Jul 2014 07:04:14 GMT
+//Tranz test net settings static const unsigned int VERSION2_SWITCH_TIME = 1401854412;
+
+
+
+
+
 
 static const int64 MIN_TXOUT_AMOUNT = MIN_TX_FEE;
 /** Split/Combine Threshold Max */
@@ -50,9 +56,6 @@ static const unsigned int PROTOCOL_SWITCH_TIME = 1371686400; // 20 Jun 2013 00:0
 static const unsigned int REWARD_SWITCH_TIME = 1369432800; // 25 May 2013 00:00:00
 
 static const unsigned int REWARD_FIX_SWITCH_TIME = 1378512000; // 7 SEP 2013 00:00:00 GMT
-
-static const int RECOVER_DBLSP_HEIGHT_TESTNET = 1180; // DoubleSpend Fix Testnet.
-static const int RECOVER_DBLSP_HEIGHT = 3390000; // DoubleSpend Fix MainNet
 
 
 inline bool MoneyRange(int64 nValue) { return (nValue >= 0 && nValue <= MAX_MONEY); }
