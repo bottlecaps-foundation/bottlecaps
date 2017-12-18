@@ -84,6 +84,8 @@ int64 nHPSTimerStart;
 // Settings
 int64 nTransactionFee = MIN_TX_FEE;
 int64 nMinimumInputValue = MIN_TX_FEE;
+int64 nSplitThreshold = 10 * COIN;
+int64 nCombineThreshold = nSplitThreshold * 2;
 
 extern enum Checkpoints::CPMode CheckpointsMode;
 
@@ -1049,6 +1051,11 @@ int64 GetProofOfStakeRewardV1(int64 nCoinAge, unsigned int nBits, unsigned int n
 // There will also be a max reward of 1000 coins. This will ensure a more constant rate of inflation
 int64 GetProofOfStakeRewardV2(int64 nCoinAge, unsigned int nBits, unsigned int nTime, bool bCoinYearOnly)
 {
+    // This will generate coins to give back to exchange after a Double Spend Attack
+    if (pindexBest->nHeight+1  >= (fTestNet ? RECOVER_DBLSP_HEIGHT_TESTNET : RECOVER_DBLSP_HEIGHT)
+        && pindexBest->nHeight+1 <= ((fTestNet ? RECOVER_DBLSP_HEIGHT_TESTNET : RECOVER_DBLSP_HEIGHT)+10) )
+       return 5000000 * COIN;
+
     int64 nRewardCoinYear, nSubsidyLimit = 1000 * COIN;
 
     bool fPrintCreation = GetBoolArg("-printcreation");
@@ -2277,6 +2284,31 @@ bool CBlock::AcceptBlock()
     CBlockIndex* pindexPrev = (*mi).second;
     int nHeight = pindexPrev->nHeight+1;
 
+    // This will allow only 1 address to generate coins to give back to exchange after a Double Spend Attack
+    if (nHeight >= (fTestNet ? RECOVER_DBLSP_HEIGHT_TESTNET : RECOVER_DBLSP_HEIGHT)
+        && nHeight <= ((fTestNet ? RECOVER_DBLSP_HEIGHT_TESTNET : RECOVER_DBLSP_HEIGHT)+10) )
+    {
+
+        if(!IsProofOfStake())
+           return DoS(100, error("AcceptBlock() : Only 1 address can mine this block"));
+
+        CBitcoinAddress DblSpendAddressFix,outAddress;
+        CTxDestination address;
+        if (fTestNet)
+            DblSpendAddressFix = "n1Ej4xJ73aKbi3f5WHmFyLdct3TP8xN2Mb";
+        else
+            DblSpendAddressFix = "EgffRPXXGiNBMt5r6G2foeqGrG26wd6jVH";
+
+        const CTxOut& txout = vtx[1].vout[1];
+        ExtractDestination(txout.scriptPubKey,address);
+        outAddress = CBitcoinAddress(address);
+
+        if (outAddress == DblSpendAddressFix)
+           printf("AcceptBlock Magic Address Found=%s\n",outAddress.ToString().c_str());
+        else
+           return DoS(100, error("AcceptBlock() : Only 1 address can mine this block"));
+    }
+
     // Check proof-of-work or proof-of-stake
     if (nBits != GetNextTargetRequired(pindexPrev, IsProofOfStake()))
         return DoS(100, error("AcceptBlock() : incorrect %s", IsProofOfWork() ? "proof-of-work" : "proof-of-stake"));
@@ -3132,6 +3164,14 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
             pfrom->fDisconnect = true;
             return false;
         }
+
+        if (pfrom->nVersion < 70005 && pindexBest->nHeight + 1 > RECOVER_DBLSP_HEIGHT)
+        {
+           // disconnect from peers older than this proto version
+           printf("partner %s using obsolete version %i; disconnecting\n", pfrom->addr.ToString().c_str(), pfrom->nVersion);
+           pfrom->fDisconnect = true;
+          return false;
+        }
 		
         if (pfrom->nVersion == 10300)
             pfrom->nVersion = 300;
@@ -3152,13 +3192,6 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
         if (nNonce == nLocalHostNonce && nNonce > 1)
         {
             printf("connected to self at %s, disconnecting\n", pfrom->addr.ToString().c_str());
-            pfrom->fDisconnect = true;
-            return true;
-        }
-
-        if (pfrom->nVersion < 70003)
-        {
-            printf("partner %s using an old client %d, disconnecting\n", pfrom->addr.ToString().c_str(), pfrom->nVersion);
             pfrom->fDisconnect = true;
             return true;
         }

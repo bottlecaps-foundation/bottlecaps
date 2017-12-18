@@ -16,6 +16,7 @@ class Notificator;
 class RPCConsole;
 class AutoSavingsDialog;
 class BlockBrowser;
+class CBitcoinAddress;
 
 QT_BEGIN_NAMESPACE
 class QLabel;

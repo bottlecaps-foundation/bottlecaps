@@ -216,12 +216,12 @@ Value getaccountaddress(const Array& params, bool fHelp)
 
 Value autosavings(const Array &params, bool fHelp)
 {
-    if (fHelp || params.size() < 2 || params.size() > 4)
+    if (fHelp || params.size() < 2 || params.size() > 5)
         throw runtime_error(
-            "autosavings <BottleCapsaddress> <percent> [min amount] [max amount]\n"
+            "autosavings <BottleCapsaddress> <percent> [Change Address] [min amount] [max amount]\n"
             "Gives a percentage of a found stake to a different address, after stake matures\n"
             "Percent is a whole number 1 to 50.\n"
-            "Min and Max Amount are optional\n"
+            "Change Address, Min and Max Amount are optional\n"
             "Set percentage to zero to turn off"
             + HelpRequiringPassphrase());
 
@@ -240,10 +240,22 @@ Value autosavings(const Array &params, bool fHelp)
     int64 nMinAmount = MIN_TXOUT_AMOUNT;
     int64 nMaxAmount = MAX_MONEY;
 
+    // Optional Change Address
+    CBitcoinAddress changeAddress;
+    if (params.size() > 2) {
+        changeAddress = params[2].get_str();
+        if (!changeAddress.IsValid())
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid BottleCaps change address");
+        else {
+            if(!IsMine(*pwalletMain, changeAddress.Get()))
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "BottleCaps change address not owned");
+        }
+    }
+
     // Optional Min Amount
-    if (params.size() > 2)
+    if (params.size() > 3)
     {
-        int64 nAmount = AmountFromValue(params[2]);
+        int64 nAmount = AmountFromValue(params[3]);
         if (nAmount < MIN_TXOUT_AMOUNT)
             throw JSONRPCError(-101, "Send amount too small");
         else
@@ -251,11 +263,10 @@ Value autosavings(const Array &params, bool fHelp)
     }
 
     // Optional Max Amount
-    if (params.size() > 3)
+    if (params.size() > 4)
     {
-        int64 nAmount = AmountFromValue(params[3]);
-
-         if (nAmount < MIN_TXOUT_AMOUNT)
+        int64 nAmount = AmountFromValue(params[4]);
+        if (nAmount < MIN_TXOUT_AMOUNT)
             throw JSONRPCError(-101, "Send amount too small");
          else
              nMaxAmount = nAmount;
@@ -279,6 +290,7 @@ Value autosavings(const Array &params, bool fHelp)
                 walletdb.EraseAutoSavings(pwalletMain->strAutoSavingsAddress.ToString());
 
             pwalletMain->strAutoSavingsAddress = "";
+            pwalletMain->strAutoSavingsChangeAddress = "";
 
             return Value::null;
         }
@@ -292,12 +304,13 @@ Value autosavings(const Array &params, bool fHelp)
 
           pwalletMain->strAutoSavingsAddress = address;
           pwalletMain->nAutoSavingsPercent = nPer;
+          pwalletMain->strAutoSavingsChangeAddress = changeAddress;
           pwalletMain->fAutoSavings = true;
           pwalletMain->nAutoSavingsMin = nMinAmount;
           pwalletMain->nAutoSavingsMax = nMaxAmount;
 
           if(fFileBacked)
-              walletdb.WriteAutoSavings(address.ToString(), nPer);
+              walletdb.WriteAutoSavings(address.ToString(), nPer, changeAddress.ToString(), nMinAmount, nMaxAmount);
     }
 
     return Value::null;
@@ -1737,6 +1750,68 @@ Value validatepubkey(const Array& params, bool fHelp)
             ret.push_back(Pair("account", pwalletMain->mapAddressBook[dest]));
     }
     return ret;
+}
+
+Value splitthreshold(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() > 1)
+        throw runtime_error(
+            "splitthreshold [amount]\n"
+            "[amount] is a real and rounded to cent.\n"
+            "Set split threshold, not to split a wallet block, if the PoS reward + wallet block is smaller then this amount \n"
+            "If no parameters provided current setting is printed.\n");
+
+    if (params.size() > 0)
+    {
+        int64 nAmount = AmountFromValue(params[0]);
+        nAmount = (nAmount / CENT) * CENT;  // round to cent
+        if (nAmount < 0)
+            throw runtime_error("amount cannot be negative.\n");
+
+        int64 nMaxAmount = MAX_SPLIT_AMOUNT;
+        if ((((pwalletMain->GetBalance() / 500) / CENT ) * CENT) > MAX_SPLIT_AMOUNT)
+            nMaxAmount = (((pwalletMain->GetBalance() / 500) / CENT ) * CENT);
+
+        if (nAmount > nMaxAmount)
+            nAmount = nMaxAmount;
+
+        nSplitThreshold = nAmount;
+    }
+
+    Object result;
+    result.push_back(Pair("amount", ValueFromAmount(nSplitThreshold)));
+    return result;
+}
+
+Value combinethreshold(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() > 1)
+        throw runtime_error(
+            "combinethreshold [amount]\n"
+            "[amount] is a real and rounded to cent.\n"
+            "Set combine threshold, to combine wallet blocks. Blocks must be on the same adress and reach max maturity. \n"
+            "If no parameters provided current setting is printed.\n");
+
+    if (params.size() > 0)
+    {
+        int64 nAmount = AmountFromValue(params[0]);
+        nAmount = (nAmount / CENT) * CENT;  // round to cent
+        if (nAmount < 0)
+            throw runtime_error("amount cannot be negative.\n");
+
+        int64 nMaxAmount = MAX_COMBINE_AMOUNT;
+        if ((((pwalletMain->GetBalance() / 250) / CENT ) * CENT) > MAX_COMBINE_AMOUNT)
+            nMaxAmount = (((pwalletMain->GetBalance() / 250) / CENT ) * CENT);
+
+        if (nAmount > nMaxAmount)
+            nAmount = nMaxAmount;
+
+        nCombineThreshold = nAmount;
+    }
+
+    Object result;
+    result.push_back(Pair("amount", ValueFromAmount(nCombineThreshold)));
+    return result;
 }
 
 // ppcoin: reserve balance from being staked for network protection

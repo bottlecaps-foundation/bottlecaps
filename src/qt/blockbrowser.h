@@ -40,6 +40,7 @@ private:
 };
 
 double getTxTotalValue(std::string);
+double getMoneySupply(int64 Height);
 double convertCoins(int64);
 int64 getBlockTime(int64);
 int64 getBlocknBits(int64);

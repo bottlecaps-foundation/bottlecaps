@@ -29,6 +29,7 @@
 #include "net.h"
 #include "savingsdialog.h"
 #include "blockbrowser.h"
+#include "base58.h"
 
 #ifdef Q_OS_MAC
 #include "macdockiconhandler.h"
@@ -691,21 +692,31 @@ void BitcoinGUI::stakingIconClicked()
    uint64 nMinWeight = 0, nMaxWeight = 0, nWeight = 0;
    walletModel->getStakeWeight(nMinWeight,nMaxWeight,nWeight);
 
+   CBitcoinAddress strAddress;
+   CBitcoinAddress strChangeAddress;
+   int nPer;
+   int64 nMin;
+   int64 nMax;
+
+   walletModel->getAutoSavings(nPer, strAddress, strChangeAddress, nMin, nMax);
+
    int unit = clientModel->getOptionsModel()->getDisplayUnit();
 
    message(tr("Extended Staking Information"),
       tr("Client Version: %1\n"
          "Protocol Version: %2\n"
-         "Current Wallet Version: %3\n\n"
+         "Wallet Version: %3\n\n"
          "Last PoS Block Number: %4\n"
          "Last PoS Block Time: %5\n\n"
          "Current PoS Difficulty: %6\n"
          "Current PoS Netweight: %7\n"
          "Current PoS Yearly Interest: %8\%\n\n"
          "Wallet PoS Weight: %9\n\n"
-         "Auto Savings Address: %10\n"
-         "Auto Savings Percentage: %11\n\n"
-         "Network Money Supply: %12\n")
+         "Stake Split Threshold %10\n"
+         "Stake Combine Threshold %11\n\n"
+         "Auto Savings Address: %12\n"
+         "Auto Savings Percentage: %13\n\n"
+         "Network Money Supply: %14\n")
          .arg(clientModel->formatFullVersion())
          .arg(clientModel->getProtocolVersion())
          .arg(walletModel->getWalletVersion())
@@ -715,8 +726,10 @@ void BitcoinGUI::stakingIconClicked()
          .arg(clientModel->getPosKernalPS())
          .arg(clientModel->getProofOfStakeReward())
          .arg(nWeight)
-         .arg(walletModel->getAutoSavingsAddress())
-         .arg(walletModel->getAutoSavingsPercent())
+         .arg(BitcoinUnits::formatWithUnit(unit, nSplitThreshold, false))
+         .arg(BitcoinUnits::formatWithUnit(unit, nCombineThreshold, false))
+         .arg(strAddress.IsValid() ? strAddress.ToString().c_str() : "Not Saving")
+         .arg(nPer)
          .arg(BitcoinUnits::formatWithUnit(unit, clientModel->getMoneySupply(), false))
       ,CClientUIInterface::MODAL);
 }

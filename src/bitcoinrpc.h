@@ -195,6 +195,8 @@ extern json_spirit::Value encryptwallet(const json_spirit::Array& params, bool f
 extern json_spirit::Value validateaddress(const json_spirit::Array& params, bool fHelp);
 extern json_spirit::Value getinfo(const json_spirit::Array& params, bool fHelp);
 extern json_spirit::Value reservebalance(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value splitthreshold(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value combinethreshold(const json_spirit::Array& params, bool fHelp);
 extern json_spirit::Value checkwallet(const json_spirit::Array& params, bool fHelp);
 extern json_spirit::Value repairwallet(const json_spirit::Array& params, bool fHelp);
 extern json_spirit::Value resendtx(const json_spirit::Array& params, bool fHelp);

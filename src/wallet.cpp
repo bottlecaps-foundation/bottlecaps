@@ -1191,6 +1191,7 @@ int64 CWallet::GetNewMint() const
     return nTotal;
 }
 
+int nPrevAutoSavingsHeight = 0;
 bool CWallet::AutoSavings()
 {
     if ( IsInitialBlockDownload() || IsLocked() )
@@ -1208,18 +1209,25 @@ bool CWallet::AutoSavings()
             {
                 // Calculate Amount for Savings
                 nNet = ( ( pcoin->GetCredit() - pcoin->GetDebit() ) * nAutoSavingsPercent )/100;
-
-                // Do not send if amount is too low/high
-                if (nNet <= nAutoSavingsMin || nNet >= nAutoSavingsMax )
-                {
-                    printf("AutoSavings: Amount: %s is not in range of Min: %s and Max:%s\n",FormatMoney(nNet).c_str(),FormatMoney
-                           (nAutoSavingsMin).c_str(),FormatMoney
-                           (nAutoSavingsMax).c_str());
+                // Do not send if amount is too low
+                if (nNet < nAutoSavingsMin ) {
+                    printf("AutoSavings: Amount %s is less than Min %s. Not sending. \n",FormatMoney(nNet).c_str(),FormatMoney(nAutoSavingsMin).c_str());
                     return false;
                 }
-
-                printf("AutoSavings Sending: %s to Address: %s\n", FormatMoney(nNet).c_str(), strAutoSavingsAddress.ToString().c_str());
-                SendMoneyToDestination(strAutoSavingsAddress.Get(), nNet, wtx, false,true);
+                // Truncate to max if amount is too great
+                if (nNet > nAutoSavingsMax ) {
+                    printf("AutoSavings: Amount %s is greater than Max %s. Truncated to Max.\n",FormatMoney(nNet).c_str(),FormatMoney(nAutoSavingsMax).c_str());
+                    nNet = nAutoSavingsMax;
+                }
+                // Check to make sure we are not in a roll back time
+                if (nBestHeight <= nPrevAutoSavingsHeight ) {
+                    printf("AutoSavings: Warning! nBestHeight %d less or equal to nPrevAutoSavingsHeight %d.\n", nBestHeight, nPrevAutoSavingsHeight);
+                    return false;
+                } else {
+                    printf("AutoSavings Sending: %s to Address: %s\n", FormatMoney(nNet).c_str(), strAutoSavingsAddress.ToString().c_str());
+                    SendMoneyToDestination(strAutoSavingsAddress.Get(), nNet, wtx, false,true);
+                    nPrevAutoSavingsHeight = nBestHeight;
+                }
             }
         }
     }
@@ -1397,7 +1405,7 @@ bool CWallet::SelectCoinsSimple(int64 nTargetValue, unsigned int nSpendTime, int
     return true;
 }
 
-bool CWallet::CreateTransaction(const vector<pair<CScript, int64> >& vecSend, CWalletTx& wtxNew, CReserveKey& reservekey, int64& nFeeRet, const CCoinControl* coinControl)
+bool CWallet::CreateTransaction(const vector<pair<CScript, int64> >& vecSend, CWalletTx& wtxNew, CReserveKey& reservekey, int64& nFeeRet, bool fAllowAutoSavings, const CCoinControl* coinControl)
 {
     int64 nValue = 0;
     BOOST_FOREACH (const PAIRTYPE(CScript, int64)& s, vecSend)
@@ -1465,12 +1473,15 @@ bool CWallet::CreateTransaction(const vector<pair<CScript, int64> >& vecSend, CW
                     // change transaction isn't always pay-to-bitcoin-address
                     CScript scriptChange;
 
+                    // AutoSavings: send change to custom address
+                    if (fAllowAutoSavings && strAutoSavingsChangeAddress.IsValid()) {
+                        scriptChange.SetDestination(strAutoSavingsChangeAddress.Get());
+                    }
                     // coin control: send change to custom address
-                    if (coinControl && !boost::get<CNoDestination>(&coinControl->destChange))
+                    else if (coinControl && !boost::get<CNoDestination>(&coinControl->destChange)) {
                         scriptChange.SetDestination(coinControl->destChange);
-                        
-                    // no coin control: send change to newly generated address
-                    else
+                    }
+                    else // no coin control: send change to newly generated address
                     {
                         // Note: We use a new key here to keep it from being obvious which side is the change.
                         //  The drawback is that by not reusing a previous key, the change may be lost if a
@@ -1529,11 +1540,11 @@ bool CWallet::CreateTransaction(const vector<pair<CScript, int64> >& vecSend, CW
     return true;
 }
 
-bool CWallet::CreateTransaction(CScript scriptPubKey, int64 nValue, CWalletTx& wtxNew, CReserveKey& reservekey, int64& nFeeRet, const CCoinControl* coinControl)
+bool CWallet::CreateTransaction(CScript scriptPubKey, int64 nValue, CWalletTx& wtxNew, CReserveKey& reservekey, int64& nFeeRet, bool fAllowAutoSavings, const CCoinControl* coinControl)
 {
     vector< pair<CScript, int64> > vecSend;
     vecSend.push_back(make_pair(scriptPubKey, nValue));
-    return CreateTransaction(vecSend, wtxNew, reservekey, nFeeRet, coinControl);
+    return CreateTransaction(vecSend, wtxNew, reservekey, nFeeRet, fAllowAutoSavings, coinControl);
 }
 
 bool CWallet::GetStakeWeightFromValue(const int64& nTime, const int64& nValue, uint64& nWeight)
@@ -1619,7 +1630,6 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
     // The following split & combine thresholds are important to security
     // Should not be adjusted if you don't understand the consequences
     static unsigned int nStakeSplitAge = (60 * 60 * 24 * 90);
-    int64 nCombineThreshold = GetProofOfWorkReward(GetLastBlockIndex(pindexBest, false)->nBits) / 3;
 
     CBigNum bnTargetPerCoinDay;
     bnTargetPerCoinDay.SetCompact(nBits);
@@ -1679,7 +1689,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
         bool fKernelFound = false;
         for (unsigned int n=0; n<min(nSearchInterval,(int64)nMaxStakeSearchInterval) && !fKernelFound && !fShutdown; n++)
         {
-            // Search backward in time from the given txNew timestamp 
+            // Search backward in time from the given txNew timestamp
             // Search nSearchInterval seconds back up to nMaxStakeSearchInterval
             uint256 hashProofOfStake = 0, targetProofOfStake = 0;
             COutPoint prevoutStake = COutPoint(pcoin.first->GetHash(), pcoin.second);
@@ -1738,12 +1748,12 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
                     scriptPubKeyOut = scriptPubKeyKernel;
                 }
 
-                txNew.nTime -= n; 
+                txNew.nTime -= n;
                 txNew.vin.push_back(CTxIn(pcoin.first->GetHash(), pcoin.second));
                 nCredit += pcoin.first->vout[pcoin.second].nValue;
                 vwtxPrev.push_back(pcoin.first);
                 txNew.vout.push_back(CTxOut(0, scriptPubKeyOut));
-                if (block.GetBlockTime() + nStakeSplitAge > txNew.nTime)
+                 if((nCredit >= nSplitThreshold) && (block.GetBlockTime() + nStakeSplitAge > txNew.nTime))
                     txNew.vout.push_back(CTxOut(0, scriptPubKeyOut)); //split stake
                 if (fDebug && GetBoolArg("-printcoinstake"))
                     printf("CreateCoinStake : added kernel type=%d\n", whichType);
@@ -1835,7 +1845,6 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
     return true;
 }
 
-
 // Call after CreateTransaction unless you want to abort
 bool CWallet::CommitTransaction(CWalletTx& wtxNew, CReserveKey& reservekey)
 {
@@ -1906,7 +1915,7 @@ string CWallet::SendMoney(CScript scriptPubKey, int64 nValue, CWalletTx& wtxNew,
         printf("SendMoney() : %s", strError.c_str());
         return strError;
     }
-    if (!CreateTransaction(scriptPubKey, nValue, wtxNew, reservekey, nFeeRequired))
+    if (!CreateTransaction(scriptPubKey, nValue, wtxNew, reservekey, nFeeRequired, fAllowAutoSavings))
     {
         string strError;
         if (nValue + nFeeRequired > GetBalance())
