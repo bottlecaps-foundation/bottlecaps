@@ -324,31 +324,61 @@ OTHER_FILES += \
 # platform specific defaults, if not overridden on command line
 isEmpty(BOOST_LIB_SUFFIX) {
     macx:BOOST_LIB_SUFFIX = -mt
-    windows:BOOST_LIB_SUFFIX = -mgw46-mt-sd-1_54
+    windows:BOOST_LIB_SUFFIX = -mgw44-mt-s-1_50
 }
 
 isEmpty(BOOST_THREAD_LIB_SUFFIX) {
     BOOST_THREAD_LIB_SUFFIX = $$BOOST_LIB_SUFFIX
 }
 
-isEmpty(BDB_LIB_PATH) {
-    macx:BDB_LIB_PATH = /opt/local/lib/db48
-}
+macx: {
 
-isEmpty(BDB_LIB_SUFFIX) {
-    macx:BDB_LIB_SUFFIX = -4.8
-}
+    isEmpty(DEPSDIR) {
 
-isEmpty(BDB_INCLUDE_PATH) {
-    macx:BDB_INCLUDE_PATH = /opt/local/include/db48
-}
+        check_dir = /usr/local/Cellar
+        exists($$check_dir) {
+            DEPSDIR = /usr/local
+        }
 
-isEmpty(BOOST_LIB_PATH) {
-    macx:BOOST_LIB_PATH = /opt/local/lib
-}
+        !exists($$check_dir) {
+            DEPSDIR = /opt/local
+        }
+    }
 
-isEmpty(BOOST_INCLUDE_PATH) {
-    macx:BOOST_INCLUDE_PATH = /opt/local/include
+    isEmpty(BOOST_LIB_PATH) {
+        BOOST_LIB_PATH = $$DEPSDIR/lib
+    }
+
+    isEmpty(BOOST_INCLUDE_PATH) {
+        BOOST_INCLUDE_PATH = $$DEPSDIR/include
+    }
+
+    isEmpty(BDB_LIB_PATH) {
+        BDB_LIB_PATH = $$DEPSDIR/lib
+    }
+
+    isEmpty(BDB_INCLUDE_PATH) {
+        BDB_INCLUDE_PATH = $$DEPSDIR/include
+    }
+
+    HEADERS += src/qt/macdockiconhandler.h src/qt/macnotificationhandler.h
+    OBJECTIVE_SOURCES += src/qt/macdockiconhandler.mm src/qt/macnotificationhandler.mm
+    LIBS += -framework Foundation -framework ApplicationServices -framework AppKit -framework CoreServices \
+        $$BDB_LIB_PATH/libdb_cxx.a \
+        $$BOOST_LIB_PATH/libboost_system-mt.a \
+        $$BOOST_LIB_PATH/libboost_filesystem-mt.a \
+        $$BOOST_LIB_PATH/libboost_program_options-mt.a \
+        $$BOOST_LIB_PATH/libboost_thread-mt.a \
+        $$BOOST_LIB_PATH/libboost_chrono-mt.a
+    DEFINES += MAC_OSX MSG_NOSIGNAL=0
+    # osx 10.9 has changed the stdlib default to libc++. To prevent some link error, you may need to use libstdc++
+    QMAKE_CXXFLAGS += -stdlib=libstdc++
+
+    ICON = src/qt/res/icons/BottleCaps.icns
+    TARGET = "BottleCaps-Qt"
+
+    QMAKE_CFLAGS_THREAD += -pthread
+    QMAKE_CXXFLAGS_THREAD += -pthread
 }
 
 windows:DEFINES += WIN32
@@ -369,16 +399,6 @@ windows:!contains(MINGW_THREAD_BUGFIX, 0) {
     DEFINES += LINUX
     LIBS += -lrt
 }
-
-macx:HEADERS += src/qt/macdockiconhandler.h
-macx:OBJECTIVE_SOURCES += src/qt/macdockiconhandler.mm
-macx:LIBS += -framework Foundation -framework ApplicationServices -framework AppKit
-macx:DEFINES += MAC_OSX MSG_NOSIGNAL=0
-macx:ICON = src/qt/res/icons/bitcoin.icns
-macx:TARGET = "BottleCaps-Qt"
-macx:QMAKE_CFLAGS_THREAD += -pthread
-macx:QMAKE_LFLAGS_THREAD += -pthread
-macx:QMAKE_CXXFLAGS_THREAD += -pthread
 
 # Set libraries and includes at end, to use platform-defined defaults if not overridden
 INCLUDEPATH += $$BOOST_INCLUDE_PATH $$BDB_INCLUDE_PATH $$OPENSSL_INCLUDE_PATH $$QRENCODE_INCLUDE_PATH
